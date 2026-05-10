@@ -6,7 +6,7 @@ CREATE TABLE products (
     fats DOUBLE PRECISION NOT NULL,
     carbs DOUBLE PRECISION NOT NULL,
     product_type VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP -- тільки в БД
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Кожна таблиця має Primary Key, який є Foreign Key до products.id
@@ -35,7 +35,6 @@ CREATE TABLE dressings (
     is_fat_based BOOLEAN NOT NULL
 );
 
--- Topping
 CREATE TABLE toppings (
     product_id INTEGER PRIMARY KEY REFERENCES products(id) ON DELETE CASCADE,
     allergen VARCHAR(50),
@@ -51,7 +50,7 @@ CREATE TABLE salads (
 CREATE TABLE ingredients (
     id SERIAL PRIMARY KEY,
     salad_id INTEGER REFERENCES salads(id) ON DELETE CASCADE,
-    product_id INTEGER REFERENCES products(id) ON DELETE RESTRICT,
+    product_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
     weight_grams DOUBLE PRECISION NOT NULL,
     processing_state VARCHAR(50) NOT NULL
 );
