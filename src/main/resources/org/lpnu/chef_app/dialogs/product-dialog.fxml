@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox spacing="15.0" style="-fx-background-color: white;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.lpnu.chef_app.controller.ProductDialogController">
+    <padding>
+        <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
+    </padding>
+
+    <Label fx:id="titleLabel" text="Додати новий продукт" style="-fx-text-fill: #2c3e50;">
+        <font>
+            <Font name="System Bold" size="20.0" />
+        </font>
+    </Label>
+
+    <GridPane hgap="10.0" vgap="15.0">
+        <columnConstraints>
+            <ColumnConstraints prefWidth="120.0" />
+            <ColumnConstraints hgrow="ALWAYS" />
+        </columnConstraints>
+
+        <children>
+            <Label text="Назва:" GridPane.rowIndex="0" />
+            <TextField fx:id="nameField" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <Label text="Категорія:" GridPane.rowIndex="1" />
+            <ComboBox fx:id="typeComboBox" prefWidth="200.0" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+            <Label text="Ккал/100г:" GridPane.rowIndex="2" />
+            <TextField fx:id="kcalField" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+            <Label text="Білки / Жири / Вугл:" GridPane.rowIndex="3" />
+            <HBox spacing="5.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                <TextField fx:id="pField" promptText="Б" />
+                <TextField fx:id="fField" promptText="Ж" />
+                <TextField fx:id="cField" promptText="В" />
+            </HBox>
+        </children>
+    </GridPane>
+
+    <!-- Секція для специфічних полів (буде змінюватися динамічно) -->
+    <Separator />
+    <StackPane fx:id="dynamicContentArea" prefHeight="50.0">
+        <children>
+            <VBox fx:id="vegetableExtraBox" spacing="10.0" visible="false">
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <Label fx:id="extraLabel" text="Показник (%):" />
+                    <TextField fx:id="extraField" />
+                </HBox>
+            </VBox>
+            <VBox fx:id="dressingExtraBox" spacing="10.0" visible="false">
+                <CheckBox fx:id="fatBasedCheckBox" text="На жирній основі" />
+            </VBox>
+            <VBox fx:id="toppingExtraBox" spacing="10.0" visible="false">
+                <HBox spacing="10.0" alignment="CENTER_LEFT">
+                    <Label text="Алерген:" />
+                    <ComboBox fx:id="allergenComboBox" prefWidth="150.0" />
+                    <CheckBox fx:id="crunchyCheckBox" text="Хрусткий" />
+                </HBox>
+            </VBox>
+        </children>
+    </StackPane>
+
+    <HBox alignment="CENTER_RIGHT" spacing="10.0">
+        <Button onAction="#handleCancel" style="-fx-background-radius: 5;" text="Скасувати" />
+        <Button onAction="#handleSave" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-background-radius: 5;" text="Зберегти" />
+    </HBox>
+</VBox>
