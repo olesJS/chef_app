@@ -7,4 +7,9 @@ module org.lpnu.chef_app {
 
     opens org.lpnu.chef_app to javafx.fxml;
     exports org.lpnu.chef_app;
+
+    opens org.lpnu.chef_app.controller to javafx.fxml;
+    exports org.lpnu.chef_app.controller;
+
+    opens org.lpnu.chef_app.model to javafx.base;
 }

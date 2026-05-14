@@ -10,7 +10,7 @@ public class DatabaseConnector {
 
     private static final Dotenv dotenv = Dotenv.load();
 
-    // Встановлюю часову зону "Europe/Kyiv" через невідповідність із Postgres
+    // Setting "Europe/Kyiv" timezone because of Postgres default settings
     static {
         TimeZone.setDefault(TimeZone.getTimeZone("Europe/Kyiv"));
         System.setProperty("user.timezone", "Europe/Kyiv");
@@ -23,4 +23,5 @@ public class DatabaseConnector {
     public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
     }
+
 }

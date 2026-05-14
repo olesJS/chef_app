@@ -85,6 +85,7 @@ public class JdbcSaladRepository implements SaladRepository {
 
             while (res.next()) {
                 Salad salad = new Salad(res.getString("name"));
+                salad.setId(res.getLong("id"));
                 loadIngredientsForSalad(salad, res.getLong("id"));
                 salads.add(salad);
             }
@@ -116,27 +117,6 @@ public class JdbcSaladRepository implements SaladRepository {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public Optional<Salad> findById(Long id) {
-        String sql = "SELECT * FROM salads WHERE id = ?";
-        try (Connection conn = DatabaseConnector.getConnection();
-            PreparedStatement prStmnt = conn.prepareStatement(sql)) {
-
-            prStmnt.setLong(1, id);
-            try (ResultSet res = prStmnt.executeQuery()) {
-                if (res.next()) {
-                    Salad salad = new Salad(res.getString("name"));
-                    loadIngredientsForSalad(salad, id);
-                    return Optional.of(salad);
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-
-        return Optional.empty();
     }
 
     @Override
@@ -210,4 +190,5 @@ public class JdbcSaladRepository implements SaladRepository {
             }
         }
     }
+
 }
