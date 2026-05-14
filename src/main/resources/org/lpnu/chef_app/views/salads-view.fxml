@@ -1,14 +1,85 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import java.lang.*?>
-<?import java.util.*?>
-<?import javafx.scene.*?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
+<?import java.net.URL?>
 
-<AnchorPane xmlns="http://javafx.com/javafx"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="CONTROLLER_NAME"
-            prefHeight="400.0" prefWidth="600.0">
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.lpnu.chef_app.controller.SaladController"
+            prefHeight="600.0" prefWidth="900.0" styleClass="main-container">
 
-</AnchorPane>
+    <stylesheets>
+        <URL value="@../styles/salads-view.css" />
+    </stylesheets>
+
+    <padding>
+        <Insets top="15" right="15" bottom="15" left="15"/>
+    </padding>
+
+    <!-- Header -->
+    <top>
+        <HBox spacing="10" alignment="CENTER_LEFT" styleClass="header-box">
+            <padding><Insets bottom="15"/></padding>
+            <Label text="Назва салату:" styleClass="header-label-text"/>
+            <TextField fx:id="saladNameField" prefWidth="350" promptText="Введіть назву (напр. 'Цезар')" styleClass="modern-text-field"/>
+        </HBox>
+    </top>
+
+    <center>
+        <SplitPane dividerPositions="0.45" styleClass="modern-split-pane">
+
+            <!-- Left Side: Available products -->
+            <VBox spacing="10" styleClass="content-box">
+                <Label text="База продуктів" styleClass="section-header"/>
+                <HBox spacing="5">
+                    <TextField fx:id="searchProductField" promptText="Пошук продукту..." HBox.hgrow="ALWAYS" styleClass="modern-text-field"/>
+                </HBox>
+                <TableView fx:id="availableProductsTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
+                    <columns>
+                        <TableColumn fx:id="colProdId" text="ID" prefWidth="50"/>
+                        <TableColumn fx:id="colProdName" text="Назва" prefWidth="150"/>
+                        <TableColumn fx:id="colProdType" text="Категорія" prefWidth="100"/>
+                        <TableColumn fx:id="colProdKcal" text="Ккал" prefWidth="70"/>
+                    </columns>
+                </TableView>
+                <Button text="Додати в салат ➔" onAction="#handleAddIngredient" maxWidth="Infinity" styleClass="btn, btn-primary"/>
+            </VBox>
+
+            <!-- Right Side: Current salad -->
+            <VBox spacing="10" styleClass="content-box">
+                <Label text="Склад салату" styleClass="section-header"/>
+                <TableView fx:id="saladIngredientsTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
+                    <columns>
+                        <TableColumn fx:id="colIngName" text="Інгредієнт" prefWidth="120"/>
+                        <TableColumn fx:id="colIngWeight" text="Вага (г)" prefWidth="80"/>
+                        <TableColumn fx:id="colIngFinalWeight" text="Вихід (г)" prefWidth="80"/>
+                        <TableColumn fx:id="colIngState" text="Обробка" prefWidth="100"/>
+                        <TableColumn fx:id="colIngKcal" text="Ккал" prefWidth="70"/>
+                    </columns>
+                </TableView>
+                <Button text="✖ Видалити інгредієнт" onAction="#handleRemoveIngredient" maxWidth="Infinity" styleClass="btn, btn-danger"/>
+
+                <!-- Stats -->
+                <GridPane hgap="15" vgap="8" styleClass="summary-card">
+                    <Label text="Загальна вага:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <Label fx:id="lblTotalWeight" text="0 г" styleClass="summary-value" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                    <Label text="Загальні Ккал:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                    <Label fx:id="lblTotalKcal" text="0.0" styleClass="summary-value" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+
+                    <Label text="Б / Ж / В:" GridPane.columnIndex="2" GridPane.rowIndex="0"/>
+                    <Label fx:id="lblMacros" text="0.0 / 0.0 / 0.0" styleClass="summary-value" GridPane.columnIndex="3" GridPane.rowIndex="0"/>
+                </GridPane>
+
+                <HBox alignment="CENTER_RIGHT" spacing="12">
+                    <padding><Insets top="10"/></padding>
+                    <Button text="Очистити" onAction="#handleClearSalad" styleClass="btn, btn-default"/>
+                    <Button fx:id="saveButton" text="Зберегти рецепт" onAction="#handleSaveSalad" styleClass="btn, btn-success, btn-bold"/>
+                </HBox>
+            </VBox>
+
+        </SplitPane>
+    </center>
+
+</BorderPane>

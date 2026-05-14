@@ -1,0 +1,89 @@
+.root-container {
+    -fx-background-color: #f4f7f9;
+}
+
+.header-panel {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 10, 0, 0, 4);
+    -fx-border-color: #dcdde1;
+    -fx-border-width: 0 0 1 0;
+}
+
+.main-title {
+    -fx-text-fill: #093c5d;
+    -fx-font-size: 26px;
+    -fx-font-family: "Segoe UI Bold", sans-serif;
+}
+
+.subtitle {
+    -fx-text-fill: #7f8c8d;
+    -fx-font-size: 14px;
+}
+
+/* Елементи керування */
+.modern-input, .modern-combo {
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #dcdde1;
+    -fx-background-color: #ffffff;
+    -fx-padding: 6 10;
+}
+
+.modern-input:focused, .modern-combo:focused {
+    -fx-border-color: #3498db;
+}
+
+.btn {
+    -fx-background-radius: 6;
+    -fx-cursor: hand;
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-text-fill: white;
+}
+
+.btn:hover {
+    -fx-opacity: 0.9;
+}
+
+.btn-add {
+    -fx-background-color: #27ae60;
+    -fx-font-size: 14px;
+    -fx-padding: 10 20;
+}
+
+.btn-edit {
+    -fx-background-color: #3498db;
+    -fx-padding: 8 25;
+}
+
+.btn-delete {
+    -fx-background-color: #e74c3c;
+    -fx-padding: 8 25;
+}
+
+.modern-table {
+    -fx-background-color: white;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: #dcdde1;
+    -fx-padding: 5;
+}
+
+.modern-table .column-header {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #ecf0f1 transparent;
+}
+
+.modern-table .column-header .label {
+    -fx-text-fill: #34495e;
+    -fx-font-weight: bold;
+}
+
+.column-centered {
+    -fx-alignment: CENTER;
+}
+
+.hint-text {
+    -fx-text-fill: #95a5a6;
+    -fx-font-style: italic;
+    -fx-font-size: 13px;
+}

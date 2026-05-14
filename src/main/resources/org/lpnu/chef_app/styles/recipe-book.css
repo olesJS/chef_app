@@ -1,0 +1,96 @@
+.left-panel {
+    -fx-background-color: #f4f7f6;
+    -fx-padding: 15;
+    -fx-border-color: #dcdde1;
+    -fx-border-width: 0 1 0 0;
+}
+
+.right-panel {
+    -fx-background-color: white;
+    -fx-padding: 20;
+}
+
+.header-label {
+    -fx-font-size: 20px;
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-text-fill: #2f3640;
+}
+
+.header-label-small {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #353b48;
+}
+
+.sub-header {
+    -fx-font-weight: bold;
+    -fx-text-fill: #7f8c8d;
+}
+
+.btn {
+    -fx-background-radius: 4;
+    -fx-font-size: 13px;
+    -fx-padding: 8 15;
+    -fx-cursor: hand;
+    -fx-text-fill: white;
+}
+
+.btn:hover {
+    -fx-opacity: 0.85;
+}
+
+.btn-danger { -fx-background-color: #e74c3c; }
+.btn-primary { -fx-background-color: #3498db; }
+.btn-success { -fx-background-color: #27ae60; }
+.btn-warning { -fx-background-color: #f39c12; }
+.btn-default {
+    -fx-background-color: #dcdde1;
+    -fx-text-fill: #2f3640;
+}
+
+/* Input fields */
+.modern-text-field, .modern-combo-box, .modern-text-area {
+    -fx-background-radius: 4;
+    -fx-border-color: #dcdde1;
+    -fx-border-radius: 4;
+    -fx-background-color: white;
+}
+
+.modern-text-field:focused {
+    -fx-border-color: #3498db;
+    -fx-background-color: #f0f9ff;
+}
+
+/* Таблиця */
+.modern-table {
+    -fx-background-radius: 5;
+    -fx-border-color: #ecf0f1;
+}
+
+.modern-table .column-header {
+    -fx-background-color: #f8f9fa;
+}
+
+.summary-pane {
+    -fx-background-color: #f9f9f9;
+    -fx-padding: 15;
+    -fx-border-color: #ecf0f1;
+    -fx-border-radius: 5;
+    -fx-background-radius: 5;
+}
+
+.summary-value {
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-text-fill: #093c5d;
+}
+
+/* Salads list */
+.modern-list-view {
+    -fx-background-radius: 4;
+    -fx-border-color: #dcdde1;
+}
+
+.modern-list-view:focused {
+    -fx-border-color: #3498db;
+}

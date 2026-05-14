@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+
+<VBox spacing="15" alignment="CENTER" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.lpnu.chef_app.controller.AddIngredientDialogController"
+      styleClass="dialog-root">
+
+    <stylesheets>
+        <URL value="@../styles/dialogs.css" />
+    </stylesheets>
+
+    <Label fx:id="productNameLabel" text="Продукт" styleClass="dialog-header-small"/>
+
+    <GridPane hgap="10" vgap="10">
+        <Label text="Вага (г):" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+        <TextField fx:id="weightField" promptText="напр. 150" GridPane.columnIndex="1" GridPane.rowIndex="0"
+                   styleClass="modern-input"/>
+
+        <Label text="Стан:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+        <ComboBox fx:id="stateComboBox" prefWidth="150" GridPane.columnIndex="1" GridPane.rowIndex="1"
+                  styleClass="modern-combo"/>
+    </GridPane>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Скасувати" onAction="#handleCancel" styleClass="btn, btn-default"/>
+        <Button text="Додати" onAction="#handleOk" styleClass="btn, btn-primary"/>
+    </HBox>
+</VBox>

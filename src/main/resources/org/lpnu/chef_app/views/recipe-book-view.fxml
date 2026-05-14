@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+
+<AnchorPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.lpnu.chef_app.controller.RecipeBookController">
+
+    <stylesheets>
+        <URL value="@../styles/recipe-book.css" />
+    </stylesheets>
+
+    <SplitPane dividerPositions="0.35" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+               AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0" styleClass="main-split-pane">
+
+        <!-- Left Side -->
+        <VBox spacing="10" styleClass="left-panel">
+            <Label text="Всі рецепти" styleClass="header-label-small"/>
+            <TextField fx:id="searchSaladField" promptText="Пошук салату..." styleClass="modern-text-field"/>
+            <ListView fx:id="saladListView" VBox.vgrow="ALWAYS" styleClass="modern-list-view"/>
+
+            <VBox spacing="8">
+                <Button text="Видалити рецепт" onAction="#handleDeleteSalad" maxWidth="Infinity"
+                        styleClass="btn, btn-danger"/>
+                <Button text="Редагувати рецепт" onAction="#handleEditSalad" maxWidth="Infinity"
+                        styleClass="btn, btn-primary"/>
+            </VBox>
+        </VBox>
+
+        <!-- Right Side -->
+        <VBox spacing="15" styleClass="right-panel">
+            <HBox alignment="CENTER_LEFT" spacing="20">
+                <Label fx:id="detailsTitleLabel" text="Оберіть салат для перегляду"
+                       styleClass="header-label" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <Label text="Сортувати:"/>
+                    <ComboBox fx:id="sortComboBox" prefWidth="150" styleClass="modern-combo-box"/>
+                </HBox>
+            </HBox>
+
+            <TableView fx:id="detailsTable" VBox.vgrow="ALWAYS" styleClass="modern-table">
+                <columns>
+                    <TableColumn fx:id="colDetailName" text="Інгредієнт" prefWidth="150"/>
+                    <TableColumn fx:id="colDetailWeight" text="Вага (г)" prefWidth="80"/>
+                    <TableColumn fx:id="colDetailFinalWeight" text="Вихід (г)" prefWidth="80"/>
+                    <TableColumn fx:id="colDetailState" text="Обробка" prefWidth="100"/>
+                    <TableColumn fx:id="colDetailKcal" text="Ккал" prefWidth="80"/>
+                </columns>
+            </TableView>
+
+            <HBox spacing="10" alignment="CENTER_LEFT" styleClass="filter-pane">
+                <Label text="Фільтр Ккал: від"/>
+                <TextField fx:id="minKcalField" prefWidth="55" styleClass="modern-text-field"/>
+                <Label text="до"/>
+                <TextField fx:id="maxKcalField" prefWidth="55" styleClass="modern-text-field"/>
+                <Button text="Знайти" onAction="#handleFilterIngredients" styleClass="btn, btn-warning"/>
+                <Button text="Скинути" onAction="#handleResetFilter" styleClass="btn, btn-default"/>
+            </HBox>
+
+            <VBox spacing="5">
+                <Label text="Порада щодо приготування:" styleClass="sub-header"/>
+                <TextArea fx:id="tipTextArea" prefHeight="80.0" wrapText="true" editable="false"
+                          styleClass="modern-text-area"/>
+            </VBox>
+
+            <GridPane hgap="20" vgap="10" styleClass="summary-pane">
+                <Label text="Загальна калорійність:" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                <Label fx:id="lblTotalKcal" text="0.0" styleClass="summary-value" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+
+                <Label text="Білки / Жири / Вуглеводи:" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                <Label fx:id="lblMacros" text="0.0 / 0.0 / 0.0" styleClass="summary-value" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+            </GridPane>
+
+            <Button fx:id="exportButton" text="Завантажити рецепт" onAction="#handleExportToTxt"
+                    maxWidth="Infinity" styleClass="btn, btn-success"/>
+        </VBox>
+    </SplitPane>
+</AnchorPane>

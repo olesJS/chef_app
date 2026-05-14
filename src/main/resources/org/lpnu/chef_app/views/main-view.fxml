@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+
+<VBox xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.lpnu.chef_app.controller.MainController"
+      prefHeight="700.0" prefWidth="1000.0" styleClass="main-root">
+
+    <stylesheets>
+        <URL value="@../styles/main-view.css" />
+    </stylesheets>
+
+    <TabPane fx:id="mainTabPane" tabClosingPolicy="UNAVAILABLE" VBox.vgrow="ALWAYS"
+             styleClass="main-tab-pane">
+        <tabs>
+            <Tab text="База продуктів">
+                <content>
+                    <fx:include source="products-view.fxml"/>
+                </content>
+            </Tab>
+
+            <Tab text="Конструктор салату">
+                <content>
+                    <fx:include fx:id="salad" source="salads-view.fxml"/>
+                </content>
+            </Tab>
+
+            <Tab text="Книга рецептів">
+                <content>
+                    <fx:include fx:id="recipeBook" source="recipe-book-view.fxml"/>
+                </content>
+            </Tab>
+        </tabs>
+    </TabPane>
+</VBox>

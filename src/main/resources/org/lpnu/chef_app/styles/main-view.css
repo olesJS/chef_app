@@ -1,0 +1,84 @@
+.main-root {
+    -fx-background-color: #ffffff;
+}
+
+.main-tab-pane {
+    -fx-tab-min-height: 40px;
+    -fx-tab-max-height: 40px;
+}
+
+.main-tab-pane .tab-header-area {
+    -fx-padding: 0;
+    -fx-background-color: #093c5d;
+}
+
+.main-tab-pane .tab-header-background,
+.main-tab-pane .headers-region {
+    -fx-background-color: transparent;
+}
+
+.main-tab-pane .tab {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-background-radius: 0;
+    -fx-padding: 0 25 0 25;
+    -fx-cursor: hand;
+}
+
+.main-tab-pane .tab .tab-label {
+    -fx-text-fill: #bdc3c7;
+    -fx-font-size: 13px;
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+}
+
+.main-tab-pane .tab:hover {
+    -fx-background-color: #34495e;
+}
+.main-tab-pane .tab:hover .tab-label {
+    -fx-text-fill: #ffffff;
+}
+
+/* Active tab */
+.main-tab-pane .tab:selected {
+    -fx-background-color: #3B7597;
+}
+
+.main-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #ffffff;
+    -fx-font-weight: bold;
+}
+
+.root {
+    -fx-focus-color: transparent !important;
+    -fx-faint-focus-color: transparent !important;
+}
+
+/* Removing blue system frame */
+.table-view,
+.table-row-cell,
+.table-cell,
+.button,
+.text-field,
+.combo-box,
+.list-view,
+.tab {
+    -fx-background-insets: 0 !important;
+    -fx-focus-traversable: false;
+}
+
+.table-view:focused .table-row-cell:filled:focused,
+.table-view:focused .table-row-cell:filled:selected {
+    -fx-background-insets: 0, 1 !important;
+}
+
+.tab:focused .focus-indicator {
+    -fx-focus-color: transparent !important;
+    -fx-faint-focus-color: transparent !important;
+    -fx-border-color: transparent !important;
+}
+
+.main-tab-pane .tab-content-area {
+    -fx-background-color: transparent;
+    -fx-border-color: #dcdde1;
+    -fx-border-width: 1 0 0 0;
+}

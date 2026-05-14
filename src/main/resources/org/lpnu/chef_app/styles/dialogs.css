@@ -1,0 +1,70 @@
+.dialog-root {
+    -fx-background-color: white;
+    -fx-padding: 20;
+}
+
+.dialog-header {
+    -fx-font-size: 20px;
+    -fx-font-family: "Segoe UI Bold", sans-serif;
+    -fx-text-fill: #093c5d;
+}
+
+.dialog-header-small {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #34495e;
+}
+
+/* Input fields and comboboxes */
+.modern-input, .modern-combo {
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-border-color: #dcdde1;
+    -fx-background-color: white;
+    -fx-padding: 5 8;
+}
+
+/* Disabling blue system frames */
+.modern-input:focused, .modern-combo:focused, .btn:focused, .check-box:focused {
+    -fx-focus-color: transparent !important;
+    -fx-faint-focus-color: transparent !important;
+    -fx-border-color: #3498db;
+}
+
+.input-small {
+    -fx-pref-width: 50;
+}
+
+.btn {
+    -fx-background-radius: 5;
+    -fx-cursor: hand;
+    -fx-padding: 8 20;
+    -fx-text-fill: white;
+}
+
+.btn-default {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #093c5d;
+}
+
+.btn-primary { -fx-background-color: #3498db; }
+.btn-success { -fx-background-color: #27ae60; }
+
+.btn:hover {
+    -fx-opacity: 0.9;
+}
+
+.dialog-separator {
+    -fx-padding: 5 0 5 0;
+}
+
+.check-box .box {
+    -fx-background-radius: 3;
+    -fx-border-radius: 3;
+}
+.check-box:selected .mark {
+    -fx-background-color: white;
+}
+.check-box:selected .box {
+    -fx-background-color: #27ae60;
+}
