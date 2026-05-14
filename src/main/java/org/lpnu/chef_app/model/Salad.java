@@ -2,17 +2,23 @@ package org.lpnu.chef_app.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDateTime;
 
 public class Salad {
+    private Long id;
     private String name;
     private List<Ingredient> ingredients;
-    private LocalDateTime createdAt;
 
     public Salad(String name) {
         this.name = name;
         ingredients = new ArrayList<>();
-        this.createdAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return this.id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
     }
 
     public String getName() {
@@ -29,5 +35,9 @@ public class Salad {
 
     public double getTotalCalories() {
         return ingredients.stream().mapToDouble(Ingredient::calculateCalories).sum();
+    }
+
+    public void addIngredient(Ingredient ingredient) {
+        this.ingredients.add(ingredient);
     }
 }

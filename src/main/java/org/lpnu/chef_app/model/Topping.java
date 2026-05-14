@@ -1,6 +1,7 @@
 package org.lpnu.chef_app.model;
 
 import org.lpnu.chef_app.model.enums.Allergen;
+import org.lpnu.chef_app.model.enums.ProductType;
 
 import java.util.Optional;
 
@@ -14,22 +15,28 @@ public class Topping extends Product {
         this.isCrunchy = isCrunchy;
     }
 
-    @Override
-    public Optional<String> getPreparationTip() {
-        StringBuilder tip = new StringBuilder();
-
-        if (allergen != null && allergen != Allergen.NONE) {
-            tip.append("УВАГА: Містить алерген (").append(allergen.getName()).append("). ");
-        }
-
-        if (isCrunchy) {
-            tip.append("Щоб продукт залишався хрустким, додавайте його в салат безпосередньо перед подачею.");
-        }
-
-        return !tip.isEmpty() ? Optional.of(tip.toString().trim()) : Optional.empty();
+    public boolean getIsCrunchy() {
+        return this.isCrunchy;
     }
 
     public Allergen getAllergen() {
         return this.allergen;
     }
+
+    @Override
+    public Optional<String> getPreparationTip() {
+        String allergenInfo = (allergen != null && allergen != Allergen.NONE)
+                ? "Містить алерген (" + allergen.getDisplayName() + ")! " : "";
+        String textureInfo = isCrunchy
+                ? "Додавайте в останню мить, щоб зберегти хрустку текстуру продукту." : "";
+
+        String combined = (allergenInfo + textureInfo).trim();
+        return combined.isEmpty() ? Optional.empty() : Optional.of(combined);
+    }
+
+    @Override
+    public ProductType getType() {
+        return ProductType.TOPPING;
+    }
+
 }

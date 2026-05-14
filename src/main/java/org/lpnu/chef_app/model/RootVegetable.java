@@ -1,5 +1,7 @@
 package org.lpnu.chef_app.model;
 
+import org.lpnu.chef_app.model.enums.ProductType;
+
 import java.util.Optional;
 
 // Коренеплоди
@@ -11,12 +13,20 @@ public class RootVegetable extends Vegetable {
         this.sugarContent = sugarContent;
     }
 
+    public double getSugarContent() {
+        return this.sugarContent;
+    }
+
     @Override
     public Optional<String> getPreparationTip() {
-        if (sugarContent > 10) {
-            return Optional.of("Має високий вміст цукру (" + sugarContent + "%). Добре смакує з кислими заправками (лимон, оцет).");
-        }
-
-        return Optional.empty();
+        return (sugarContent > 10)
+                ? Optional.of("Високий вміст природних цукрів найкраще балансується кислими компонентами, як лимон чи оцет.")
+                : Optional.empty();
     }
+
+    @Override
+    public ProductType getType() {
+        return ProductType.ROOT_VEGETABLE;
+    }
+
 }

@@ -1,8 +1,9 @@
 package org.lpnu.chef_app.model;
 
+import org.lpnu.chef_app.model.enums.ProductType;
+
 import java.util.Optional;
 
-// Плодові овочі
 public class FruitingVegetable extends Vegetable {
     private double waterContentPercent;
 
@@ -11,11 +12,20 @@ public class FruitingVegetable extends Vegetable {
         this.waterContentPercent = wcp;
     }
 
+    public double getWaterContentPercent() {
+        return this.waterContentPercent;
+    }
+
     @Override
     public Optional<String> getPreparationTip() {
-        if (waterContentPercent >= 90) {
-            return Optional.of("Порада: Має високий вміст води (" + waterContentPercent + "%). Соліть та додавайте безпосередньо перед подачею.");
-        }
-        return Optional.empty();
+        return (waterContentPercent >= 90)
+                ? Optional.of("Додавайте безпосередньо перед подачею, щоб уникнути надмірного виділення соку через високий вміст води.")
+                : Optional.empty();
     }
+
+    @Override
+    public ProductType getType() {
+        return ProductType.FRUITING_VEGETABLE;
+    }
+
 }

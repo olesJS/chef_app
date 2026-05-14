@@ -1,8 +1,9 @@
 package org.lpnu.chef_app.model;
 
+import org.lpnu.chef_app.model.enums.ProductType;
+
 import java.util.Optional;
 
-// Листові овочі
 public class LeafyVegetable extends Vegetable {
     private double fiberContent;
 
@@ -11,16 +12,20 @@ public class LeafyVegetable extends Vegetable {
         this.fiberContent = fiberContent;
     }
 
+    public double getFiberContent() {
+        return this.fiberContent;
+    }
+
     @Override
     public Optional<String> getPreparationTip() {
-        StringBuilder tip = new StringBuilder();
-
-        if (fiberContent > 5.0) {
-            tip.append("Високий вміст клітковини. Рекомендуємо тонко нашаткувати для кращого засвоєння.");
-        } else {
-            tip.append("Дуже ніжне листя. Краще рвати руками, а не різати ножем, щоб уникнути окислення.");
-        }
-
-        return Optional.of(tip.toString());
+        return (fiberContent > 5.0)
+                ? Optional.of("Тонко нашаткуйте листя для кращого розкриття смаку та легшого засвоєння.")
+                : Optional.of("Рвіть листя руками замість різання ножем, щоб запобігти передчасному окисленню та в'яненню.");
     }
+
+    @Override
+    public ProductType getType() {
+        return ProductType.LEAFY_VEGETABLE;
+    }
+
 }

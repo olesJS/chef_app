@@ -1,23 +1,31 @@
 package org.lpnu.chef_app.model;
 
+import org.lpnu.chef_app.model.enums.ProductType;
+
 import java.util.Optional;
 
 public class Dressing extends Product {
     private boolean isFatBased;
 
-    Dressing(Long id, String name, double kcal, double p, double f, double c, boolean isFatBased) {
+    public Dressing(Long id, String name, double kcal, double p, double f, double c, boolean isFatBased) {
         super(id, name, kcal, p, f, c);
         this.isFatBased = isFatBased;
     }
 
+    public boolean getIsFatBased() {
+        return this.isFatBased;
+    }
+
     @Override
     public Optional<String> getPreparationTip() {
-        StringBuilder tip = new StringBuilder();
-
-        if (isFatBased) {
-            tip.append("Заправка на основі жирів. Рекомендуємо ретельно збовтати перед використанням для отримання однорідної емульсії.");
-        }
-
-        return Optional.of(tip.toString());
+        return isFatBased
+                ? Optional.of("Ретельно збовтайте заправку для створення однорідної емульсії перед додаванням у салат.")
+                : Optional.empty();
     }
+
+    @Override
+    public ProductType getType() {
+        return ProductType.DRESSING;
+    }
+
 }

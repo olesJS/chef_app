@@ -1,5 +1,7 @@
 package org.lpnu.chef_app.model;
 
+import org.lpnu.chef_app.model.enums.ProductType;
+
 import java.util.Optional;
 
 public class TuberVegetable extends Vegetable {
@@ -10,17 +12,23 @@ public class TuberVegetable extends Vegetable {
         this.starchContent = sc;
     }
 
+    public double getStarchContent() {
+        return this.starchContent;
+    }
+
     @Override
     public Optional<String> getPreparationTip() {
-        StringBuilder tip = new StringBuilder();
-
         if (starchContent > 15.0) {
-            tip.append("Високий вміст крохмалю (").append(starchContent).append("%). ");
-            tip.append("Овоч буде розсипчастим після варіння. Ідеально для пюре або заправок, але в салаті може втратити форму.");
+            return Optional.of("Через високий вміст крохмалю (" + starchContent + "%) продукт схильний до втрати форми, тому потребує обережного перемішування.");
         } else if (starchContent > 5.0) {
-            tip.append("Помірний вміст крохмалю. Добре тримає форму при варінні цілим.");
+            return Optional.of("Середній рівень крохмалю забезпечує стабільну структуру та гарне утримання форми в салаті.");
         }
-
-        return tip.length() > 0 ? Optional.of(tip.toString()) : Optional.empty();
+        return Optional.empty();
     }
+
+    @Override
+    public ProductType getType() {
+        return ProductType.TUBER_VEGETABLE;
+    }
+
 }

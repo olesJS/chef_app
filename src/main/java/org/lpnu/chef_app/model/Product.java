@@ -1,5 +1,7 @@
 package org.lpnu.chef_app.model;
 
+import org.lpnu.chef_app.model.enums.ProductType;
+
 import java.util.Optional;
 
 public abstract class Product {
@@ -45,4 +47,5 @@ public abstract class Product {
         return this.carbs;
     }
 
+    public abstract ProductType getType();
 }
