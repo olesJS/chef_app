@@ -17,9 +17,16 @@ public class MainController {
 
         mainTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             System.out.println("Ви перейшли на вкладку: " + newTab.getText());
+            int selectedIndex = mainTabPane.getSelectionModel().getSelectedIndex();
 
-            // Refreshing list of salads when opening Recipe Book Tab
-            if (mainTabPane.getSelectionModel().getSelectedIndex() == 2) {
+            if (selectedIndex == 1) {
+                if (saladController != null) {
+                    System.out.println("Оновлюємо список продуктів у конструкторі...");
+                    saladController.loadAvailableProducts();
+                }
+            }
+
+            else if (selectedIndex == 2) {
                 if (recipeBookController != null) {
                     recipeBookController.refresh();
                 }

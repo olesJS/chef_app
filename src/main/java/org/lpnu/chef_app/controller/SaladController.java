@@ -15,6 +15,7 @@ import javafx.stage.Stage;
 import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.repository.*;
 import java.io.IOException;
+import java.util.List;
 
 public class SaladController {
 
@@ -155,9 +156,12 @@ public class SaladController {
         saladIngredientsTable.setItems(currentIngredients);
     }
 
-    private void loadAvailableProducts() {
-        availableProducts.clear();
-        availableProducts.addAll(productRepository.findAll());
+    public void loadAvailableProducts() {
+        try {
+            availableProducts.setAll(productRepository.findAll());
+        } catch (RuntimeException e) {
+            showErrorAlert("Помилка завантаження", "Не вдалося отримати список продуктів: " + e.getMessage());
+        }
     }
 
     @FXML
@@ -232,17 +236,22 @@ public class SaladController {
         Salad salad = new Salad(saladName);
         currentIngredients.forEach(salad::addIngredient);
 
-        if (editingSaladId != null) {
-            saladRepository.update(salad, editingSaladId);
-            showAlert("Оновлено", "Зміни в салаті збережено!");
-        } else {
-            saladRepository.save(salad);
-            showAlert("Збережено", "Новий салат створено!");
-        }
+        try {
+            if (editingSaladId != null) {
+                saladRepository.update(salad, editingSaladId);
+                showAlert("Оновлено", "Зміни в салаті збережено!");
+            } else {
+                saladRepository.save(salad);
+                showAlert("Збережено", "Новий салат створено!");
+            }
 
-        handleClearSalad();
-        editingSaladId = null;
-        saveButton.setText("Зберегти рецепт");
+            handleClearSalad();
+            editingSaladId = null;
+            saveButton.setText("Зберегти рецепт");
+
+        } catch (RuntimeException e) {
+            showErrorAlert("Помилка бази даних", "Не вдалося зберегти салат: " + e.getMessage());
+        }
     }
 
     private void showAlert(String title, String content) {
@@ -252,4 +261,13 @@ public class SaladController {
         alert.setContentText(content);
         alert.showAndWait();
     }
+
+    private void showErrorAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText("Сталася помилка при роботі з БД");
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
 }

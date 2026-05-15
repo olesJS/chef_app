@@ -35,7 +35,7 @@ public class JdbcProductRepository implements ProductRepository {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Не вдалося отримати дані з бази", e);
         }
 
         return products;
@@ -66,7 +66,7 @@ public class JdbcProductRepository implements ProductRepository {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Не вдалося отримати дані з бази", e);
         }
 
         return Optional.empty();
@@ -114,15 +114,18 @@ public class JdbcProductRepository implements ProductRepository {
                 ResultSet res = ps.getGeneratedKeys();
                 if (res.next()) {
                     long id = res.getLong(1);
+                    product.setID(id);
                     saveSpecificData(conn, id, product);
                 }
                 conn.commit();
             } catch (SQLException e) {
-                conn.rollback();
-                throw e;
+                if (conn != null) {
+                    conn.rollback();
+                }
+                throw new RuntimeException("Транзакція провалилась", e);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Помилка при збереженні продукту: " + product.getName(), e);
         }
     }
 
@@ -147,10 +150,10 @@ public class JdbcProductRepository implements ProductRepository {
                 conn.commit();
             } catch (SQLException e) {
                 conn.rollback();
-                throw e;
+                throw new RuntimeException("Транзакція провалилась", e);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Не вдалося оновити продукт: " + e);
         }
     }
 
@@ -163,7 +166,7 @@ public class JdbcProductRepository implements ProductRepository {
             prStmnt.executeUpdate();
             System.out.println("Продукт з ID " + id + " видалено.");
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Не вдалося видалити продукт з ID: " + id, e);
         }
     }
 

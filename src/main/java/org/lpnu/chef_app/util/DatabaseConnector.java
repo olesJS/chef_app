@@ -21,6 +21,11 @@ public class DatabaseConnector {
     private static final String DB_PASSWORD = dotenv.get("POSTGRES_PASSWORD");
 
     public static Connection getConnection() throws SQLException {
+        String testUrl = System.getProperty("test.db.url");
+        if (testUrl != null) {
+            return DriverManager.getConnection(testUrl, "sa", "");
+        }
+
         return DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
     }
 

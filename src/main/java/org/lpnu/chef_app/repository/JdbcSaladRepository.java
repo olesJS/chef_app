@@ -55,20 +55,12 @@ public class JdbcSaladRepository implements SaladRepository {
 
         } catch (SQLException e) {
             if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             }
-            e.printStackTrace();
+            throw new RuntimeException("Помилка БД при збереженні салату: " + salad.getName(), e);
         } finally {
             if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                try { conn.close(); } catch (SQLException e) { e.printStackTrace(); }
             }
         }
 
@@ -90,7 +82,7 @@ public class JdbcSaladRepository implements SaladRepository {
                 salads.add(salad);
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Не вдалося отримати список салатів", e);
         }
 
         return salads;
@@ -115,7 +107,7 @@ public class JdbcSaladRepository implements SaladRepository {
                 }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Помилка завантаження інгредієнтів для салату ID: " + saladId, e);
         }
     }
 
@@ -128,7 +120,7 @@ public class JdbcSaladRepository implements SaladRepository {
             prStmnt.setLong(1, id);
             prStmnt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Не вдалося видалити салат з ID: " + id, e);
         }
     }
 
@@ -173,20 +165,12 @@ public class JdbcSaladRepository implements SaladRepository {
 
         } catch (SQLException e) {
             if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             }
-            e.printStackTrace();
+            throw new RuntimeException("Помилка БД при оновленні салату: " + salad.getName(), e);
         } finally {
             if (conn != null) {
-                try {
-                    conn.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                }
+                try { conn.close(); } catch (SQLException e) { e.printStackTrace(); }
             }
         }
     }

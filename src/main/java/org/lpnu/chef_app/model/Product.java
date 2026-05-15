@@ -27,6 +27,10 @@ public abstract class Product {
         return this.id;
     }
 
+    public void setID(Long id) {
+        this.id = id;
+    }
+
     public String getName() {
         return this.name;
     }

@@ -58,9 +58,13 @@ public class ProductController {
     }
 
     private void loadProducts() {
-        masterData.clear();
-        masterData.addAll(productRepository.findAll());
-        applySorting(sortComboBox.getValue());
+        try {
+            masterData.clear();
+            masterData.addAll(productRepository.findAll());
+            applySorting(sortComboBox.getValue());
+        } catch (RuntimeException e) {
+            showErrorAlert("Помилка завантаження", "Не вдалося отримати список продуктів: " + e.getMessage());
+        }
     }
 
     private void applySorting(String sortType) {
@@ -151,12 +155,16 @@ public class ProductController {
             dialogStage.showAndWait();
 
             if (controller.isSaveClicked() && controller.getProduct() != null) {
-                if (product == null) {
-                    productRepository.save(controller.getProduct());
-                } else {
-                    productRepository.update(controller.getProduct());
+                try {
+                    if (product == null) {
+                        productRepository.save(controller.getProduct());
+                    } else {
+                        productRepository.update(controller.getProduct());
+                    }
+                    loadProducts();
+                } catch (RuntimeException e) {
+                    showErrorAlert("Помилка збереження", e.getMessage());
                 }
-                loadProducts();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -183,8 +191,12 @@ public class ProductController {
     private void handleDeleteAction() {
         Product selected = productTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
-            productRepository.delete(selected.getID());
-            loadProducts();
+            try {
+                productRepository.delete(selected.getID());
+                loadProducts();
+            } catch (RuntimeException e) {
+                showErrorAlert("Помилка видалення", "Не вдалося видалити продукт: " + e.getMessage());
+            }
         } else {
             showAlert("Помилка", "Будь ласка, виберіть продукт для видалення");
         }
@@ -197,4 +209,13 @@ public class ProductController {
         alert.setContentText(content);
         alert.showAndWait();
     }
+
+    private void showErrorAlert(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText("Помилка при роботі з базою даних");
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
 }
