@@ -43,7 +43,7 @@
                         <TableColumn fx:id="colProdKcal" text="Ккал" prefWidth="70"/>
                     </columns>
                 </TableView>
-                <Button text="Додати в салат ➔" onAction="#handleAddIngredient" maxWidth="Infinity" styleClass="btn, btn-primary"/>
+                <Button fx:id="addIngredientButton" text="Додати в салат ➔" onAction="#handleAddIngredient" maxWidth="Infinity" styleClass="btn, btn-primary"/>
             </VBox>
 
             <!-- Right Side: Current salad -->

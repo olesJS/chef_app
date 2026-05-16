@@ -30,7 +30,10 @@ public class RecipeBookController {
     @FXML private ComboBox<String> sortComboBox;
     @FXML private Button exportButton;
 
-    private final SaladRepository saladRepository = new JdbcSaladRepository();
+    private SaladRepository saladRepository = new JdbcSaladRepository();
+    public void setSaladRepository(SaladRepository saladRepository) {
+        this.saladRepository = saladRepository;
+    }
     private ObservableList<Salad> allSalads = FXCollections.observableArrayList();
 
     private FilteredList<Salad> filteredSalads;
@@ -141,7 +144,7 @@ public class RecipeBookController {
     }
 
     @FXML
-    private void handleFilterIngredients() {
+    void handleFilterIngredients() {
         if (filteredIngredients == null) return;
 
         try {
@@ -159,7 +162,7 @@ public class RecipeBookController {
     }
 
     @FXML
-    private void handleResetFilter() {
+    void handleResetFilter() {
         minKcalField.clear();
         maxKcalField.clear();
         if (filteredIngredients != null) {
@@ -221,7 +224,7 @@ public class RecipeBookController {
     }
 
     @FXML
-    private void handleDeleteSalad() {
+    void handleDeleteSalad() {
         Salad selected = saladListView.getSelectionModel().getSelectedItem();
 
         if (selected == null) {
@@ -258,7 +261,7 @@ public class RecipeBookController {
     }
 
     @FXML
-    private void handleEditSalad() {
+    void handleEditSalad() {
         Salad selected = saladListView.getSelectionModel().getSelectedItem();
         if (selected != null) {
             if (mainController != null) {

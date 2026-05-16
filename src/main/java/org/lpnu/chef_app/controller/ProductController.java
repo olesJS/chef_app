@@ -38,7 +38,11 @@ public class ProductController {
     private static final String SORT_BY_NAME = "Назва (А-Я)";
     private static final String SORT_BY_ID = "ID (за зростанням)";
 
-    private final ProductRepository productRepository = new JdbcProductRepository();
+    private ProductRepository productRepository = new JdbcProductRepository();
+    public void setProductRepository(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+
     private ObservableList<Product> masterData = FXCollections.observableArrayList();
 
     @FXML
@@ -188,7 +192,7 @@ public class ProductController {
     }
 
     @FXML
-    private void handleDeleteAction() {
+    void handleDeleteAction() {
         Product selected = productTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             try {

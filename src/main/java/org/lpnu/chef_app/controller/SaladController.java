@@ -43,8 +43,16 @@ public class SaladController {
 
     @FXML private Button saveButton;
 
-    private final ProductRepository productRepository = new JdbcProductRepository();
-    private final SaladRepository saladRepository = new JdbcSaladRepository();
+    private ProductRepository productRepository = new JdbcProductRepository();
+    private SaladRepository saladRepository = new JdbcSaladRepository();
+
+    // For tests
+    public void setProductRepository(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
+    public void setSaladRepository(SaladRepository saladRepository) {
+        this.saladRepository = saladRepository;
+    }
 
     private FilteredList<Product> filteredProducts;
     private ObservableList<Product> availableProducts = FXCollections.observableArrayList();
@@ -165,7 +173,7 @@ public class SaladController {
     }
 
     @FXML
-    private void handleAddIngredient() {
+    void handleAddIngredient() {
         Product selectedProduct = availableProductsTable.getSelectionModel().getSelectedItem();
         if (selectedProduct == null) return;
 
@@ -192,7 +200,7 @@ public class SaladController {
     }
 
     @FXML
-    private void handleRemoveIngredient() {
+    void handleRemoveIngredient() {
         Ingredient selected = saladIngredientsTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             currentIngredients.remove(selected);
@@ -217,7 +225,7 @@ public class SaladController {
     }
 
     @FXML
-    private void handleClearSalad() {
+    void handleClearSalad() {
         currentIngredients.clear();
         saladNameField.clear();
     }
@@ -230,7 +238,7 @@ public class SaladController {
     }
 
     @FXML
-    private void handleSaveSalad() {
+    void handleSaveSalad() {
         String saladName = saladNameField.getText().trim();
 
         Salad salad = new Salad(saladName);
