@@ -15,10 +15,13 @@ import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.model.enums.ProductType;
 import org.lpnu.chef_app.repository.JdbcProductRepository;
 import org.lpnu.chef_app.repository.ProductRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 public class ProductController {
+    private static final Logger log = LoggerFactory.getLogger(ProductController.class);
 
     @FXML private TableView<Product> productTable;
     @FXML private TableColumn<Product, Long> colId;
@@ -34,7 +37,6 @@ public class ProductController {
     @FXML private ComboBox<String> sortComboBox;
     @FXML private ComboBox<String> categoryFilter;
 
-    // Sorting order names
     private static final String SORT_BY_NAME = "Назва (А-Я)";
     private static final String SORT_BY_ID = "ID (за зростанням)";
 
@@ -47,6 +49,7 @@ public class ProductController {
 
     @FXML
     public void initialize() {
+        log.info("Ініціалізація контролера продуктів.");
         setupTableColumns();
         setupFilters();
 
@@ -55,6 +58,7 @@ public class ProductController {
         sortComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 applySorting(newVal);
+                log.debug("Змінено сортування продуктів на: {}", newVal);
             }
         });
 
@@ -66,14 +70,15 @@ public class ProductController {
             masterData.clear();
             masterData.addAll(productRepository.findAll());
             applySorting(sortComboBox.getValue());
+            log.info("Успішно завантажено {} продуктів з бази даних.", masterData.size());
         } catch (RuntimeException e) {
+            log.error("Не вдалося завантажити список продуктів", e);
             showErrorAlert("Помилка завантаження", "Не вдалося отримати список продуктів: " + e.getMessage());
         }
     }
 
     private void applySorting(String sortType) {
         if (sortType == null) return;
-
         if (sortType.equals(SORT_BY_NAME)) {
             masterData.sort((p1, p2) -> p1.getName().compareToIgnoreCase(p2.getName()));
         } else if (sortType.equals(SORT_BY_ID)) {
@@ -121,12 +126,8 @@ public class ProductController {
         filteredData.setPredicate(product -> {
             String searchText = searchField.getText().toLowerCase();
             String selectedCategory = categoryFilter.getValue();
-
             boolean matchesSearch = product.getName().toLowerCase().contains(searchText);
-
-            boolean matchesCategory = selectedCategory.equals("Всі") ||
-                    product.getType().getDisplayName().equals(selectedCategory);
-
+            boolean matchesCategory = selectedCategory.equals("Всі") || product.getType().getDisplayName().equals(selectedCategory);
             return matchesSearch && matchesCategory;
         });
     }
@@ -162,31 +163,37 @@ public class ProductController {
                 try {
                     if (product == null) {
                         productRepository.save(controller.getProduct());
+                        log.info("Новий продукт успішно створено.");
                     } else {
                         productRepository.update(controller.getProduct());
+                        log.info("Продукт '{}' успішно оновлено.", controller.getProduct().getName());
                     }
                     loadProducts();
                 } catch (RuntimeException e) {
+                    log.error("Помилка при збереженні продукту з діалогу.", e);
                     showErrorAlert("Помилка збереження", e.getMessage());
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Критична помилка завантаження FXML файлу діалогу продукту.", e);
             showAlert("Помилка завантаження", "Не вдалося відкрити вікно діалогу.");
         }
     }
 
     @FXML
-    private void handleAddAction() {
+    void handleAddAction() {
+        log.info("Користувач натиснув 'Додати продукт'.");
         showProductDialog(null);
     }
 
     @FXML
-    private void handleEditAction() {
+    void handleEditAction() {
         Product selected = productTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
+            log.info("Користувач ініціював редагування продукту: {}", selected.getName());
             showProductDialog(selected);
         } else {
+            log.warn("Спроба редагувати продукт без виділення у таблиці.");
             showAlert("Помилка", "Будь ласка, виберіть продукт для редагування");
         }
     }
@@ -195,13 +202,16 @@ public class ProductController {
     void handleDeleteAction() {
         Product selected = productTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
+            log.info("Користувач ініціював видалення продукту: {} (ID: {})", selected.getName(), selected.getID());
             try {
                 productRepository.delete(selected.getID());
                 loadProducts();
             } catch (RuntimeException e) {
+                log.error("Помилка при видаленні продукту через UI", e);
                 showErrorAlert("Помилка видалення", "Не вдалося видалити продукт: " + e.getMessage());
             }
         } else {
+            log.warn("Спроба видалити продукт без виділення у таблиці.");
             showAlert("Помилка", "Будь ласка, виберіть продукт для видалення");
         }
     }
@@ -221,5 +231,4 @@ public class ProductController {
         alert.setContentText(content);
         alert.showAndWait();
     }
-
 }

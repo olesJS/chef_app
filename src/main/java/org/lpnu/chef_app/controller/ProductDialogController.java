@@ -8,9 +8,11 @@ import javafx.stage.Stage;
 import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.model.enums.Allergen;
 import org.lpnu.chef_app.model.enums.ProductType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-// Adding or editing a product
 public class ProductDialogController {
+    private static final Logger log = LoggerFactory.getLogger(ProductDialogController.class);
 
     @FXML private TextField nameField, kcalField, pField, fField, cField, extraField;
     @FXML private ComboBox<ProductType> typeComboBox;
@@ -29,13 +31,17 @@ public class ProductDialogController {
         allergenComboBox.setItems(FXCollections.observableArrayList(Allergen.values()));
 
         typeComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
-            if (newVal != null) updateDynamicFields(newVal);
+            if (newVal != null) {
+                log.debug("Змінено категорію продукту в діалозі на: {}", newVal);
+                updateDynamicFields(newVal);
+            }
         });
     }
 
     public void setProduct(Product product) {
         this.product = product;
         if (product != null) {
+            log.info("Діалог відкрито для редагування продукту: '{}'", product.getName());
             nameField.setText(product.getName());
             kcalField.setText(String.valueOf(product.getKcalPer100g()));
             pField.setText(String.valueOf(product.getProteins()));
@@ -44,21 +50,20 @@ public class ProductDialogController {
 
             typeComboBox.setValue(product.getType());
 
-            // Specific attributes
-            if (product != null) {
-                switch (product.getType()) {
-                    case ROOT_VEGETABLE -> extraField.setText(String.valueOf(((RootVegetable) product).getSugarContent()));
-                    case TUBER_VEGETABLE -> extraField.setText(String.valueOf(((TuberVegetable) product).getStarchContent()));
-                    case LEAFY_VEGETABLE -> extraField.setText(String.valueOf(((LeafyVegetable) product).getFiberContent()));
-                    case FRUITING_VEGETABLE -> extraField.setText(String.valueOf(((FruitingVegetable) product).getWaterContentPercent()));
-                    case DRESSING -> fatBasedCheckBox.setSelected(((Dressing) product).getIsFatBased());
-                    case TOPPING -> {
-                        Topping t = (Topping) product;
-                        allergenComboBox.setValue(t.getAllergen());
-                        crunchyCheckBox.setSelected(t.getIsCrunchy());
-                    }
+            switch (product.getType()) {
+                case ROOT_VEGETABLE -> extraField.setText(String.valueOf(((RootVegetable) product).getSugarContent()));
+                case TUBER_VEGETABLE -> extraField.setText(String.valueOf(((TuberVegetable) product).getStarchContent()));
+                case LEAFY_VEGETABLE -> extraField.setText(String.valueOf(((LeafyVegetable) product).getFiberContent()));
+                case FRUITING_VEGETABLE -> extraField.setText(String.valueOf(((FruitingVegetable) product).getWaterContentPercent()));
+                case DRESSING -> fatBasedCheckBox.setSelected(((Dressing) product).getIsFatBased());
+                case TOPPING -> {
+                    Topping t = (Topping) product;
+                    allergenComboBox.setValue(t.getAllergen());
+                    crunchyCheckBox.setSelected(t.getIsCrunchy());
                 }
             }
+        } else {
+            log.info("Діалог відкрито для створення нового продукту.");
         }
     }
 
@@ -104,11 +109,16 @@ public class ProductDialogController {
             };
 
             saveClicked = true;
+            log.info("Форму продукту '{}' успішно провалідовано та збережено локально.", name);
             dialogStage.close();
         }
     }
 
-    @FXML private void handleCancel() { dialogStage.close(); }
+    @FXML
+    private void handleCancel() {
+        log.info("Користувач скасував редагування/створення продукту.");
+        dialogStage.close();
+    }
 
     private boolean isInputValid() {
         StringBuilder errorMessage = new StringBuilder();
@@ -134,6 +144,7 @@ public class ProductDialogController {
         if (errorMessage.length() == 0) {
             return true;
         } else {
+            log.warn("Помилка валідації полів продукту: \n{}", errorMessage.toString().trim());
             showErrorAlert(errorMessage.toString());
             return false;
         }

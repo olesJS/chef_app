@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" packages="org.lpnu.chef_app.util">
+    <Appenders>
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="%d{dd.MM.yyyy HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+        </Console>
+
+        <RollingFile name="FileAppender" fileName="logs/chef_app.log"
+                     filePattern="logs/chef_app-%d{dd.MM.yyyy}-%i.log.gz">
+            <PatternLayout pattern="%d{dd.MM.yyyy HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="10 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
+
+        <SafeSMTP name="MailAppender">
+            <PatternLayout pattern="%d{dd.MM.yyyy HH:mm:ss} [%t] %-5level %logger{36} - %msg%n"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+        </SafeSMTP>
+    </Appenders>
+
+    <Loggers>
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="FileAppender"/>
+            <AppenderRef ref="MailAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>

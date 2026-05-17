@@ -40,4 +40,5 @@ build/
 
 .env
 
-src/main/java/org/lpnu/chef_app/Main.java
+logs/*.log
+logs/*.log.gz

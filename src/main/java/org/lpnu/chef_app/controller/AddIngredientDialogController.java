@@ -8,8 +8,12 @@ import org.lpnu.chef_app.model.Ingredient;
 import org.lpnu.chef_app.model.Product;
 import org.lpnu.chef_app.model.enums.ProcessingState;
 import org.lpnu.chef_app.model.enums.ProductType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AddIngredientDialogController {
+    private static final Logger log = LoggerFactory.getLogger(AddIngredientDialogController.class);
+
     @FXML private Label productNameLabel;
     @FXML private TextField weightField;
     @FXML private ComboBox<ProcessingState> stateComboBox;
@@ -49,8 +53,10 @@ public class AddIngredientDialogController {
 
             resultIngredient = new Ingredient(product, weight, stateComboBox.getValue());
             okClicked = true;
+            log.info("Успішно сформовано інгредієнт: {}, Вага: {}", product.getName(), weight);
             dialogStage.close();
         } catch (NumberFormatException e) {
+            log.warn("Користувач ввів некоректну вагу для інгредієнта '{}': {}", product.getName(), weightField.getText());
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setContentText("Введіть коректну вагу (число більше 0)");
             alert.showAndWait();
@@ -58,5 +64,8 @@ public class AddIngredientDialogController {
     }
 
     @FXML
-    private void handleCancel() { dialogStage.close(); }
+    private void handleCancel() {
+        log.info("Користувач скасував додавання інгредієнта '{}'", product.getName());
+        dialogStage.close();
+    }
 }

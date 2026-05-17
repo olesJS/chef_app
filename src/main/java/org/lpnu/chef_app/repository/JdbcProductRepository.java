@@ -4,6 +4,8 @@ import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.model.enums.Allergen;
 import org.lpnu.chef_app.model.enums.ProductType;
 import org.lpnu.chef_app.util.DatabaseConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -11,6 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 public class JdbcProductRepository implements ProductRepository {
+
+    private static final Logger log = LoggerFactory.getLogger(JdbcProductRepository.class);
 
     @Override
     public List<Product> findAll() {
@@ -35,6 +39,7 @@ public class JdbcProductRepository implements ProductRepository {
             }
 
         } catch (Exception e) {
+            log.error("Не вдалося отримати список продуктів з бази даних.", e);
             throw new RuntimeException("Не вдалося отримати дані з бази", e);
         }
 
@@ -66,6 +71,7 @@ public class JdbcProductRepository implements ProductRepository {
             }
 
         } catch (Exception e) {
+            log.error("Помилка при пошуку продукту з ID: {}", id, e);
             throw new RuntimeException("Не вдалося отримати дані з бази", e);
         }
 
@@ -118,13 +124,16 @@ public class JdbcProductRepository implements ProductRepository {
                     saveSpecificData(conn, id, product);
                 }
                 conn.commit();
+                log.info("Продукт '{}' успішно збережено в БД з ID: {}", product.getName(), product.getID());
             } catch (SQLException e) {
                 if (conn != null) {
                     conn.rollback();
+                    log.error("Помилка при збереженні продукту '{}'. Транзакцію відхилено.", product.getName(), e);
                 }
                 throw new RuntimeException("Транзакція провалилась", e);
             }
         } catch (SQLException e) {
+            log.error("Збій з'єднання при збереженні продукту: {}", product.getName(), e);
             throw new RuntimeException("Помилка при збереженні продукту: " + product.getName(), e);
         }
     }
@@ -148,11 +157,14 @@ public class JdbcProductRepository implements ProductRepository {
                 updateSpecificData(conn, product);
 
                 conn.commit();
+                log.info("Продукт '{}' (ID: {}) успішно оновлено.", product.getName(), product.getID());
             } catch (SQLException e) {
                 conn.rollback();
+                log.error("Помилка при оновленні продукту '{}'. Транзакцію відхилено.", product.getName(), e);
                 throw new RuntimeException("Транзакція провалилась", e);
             }
         } catch (SQLException e) {
+            log.error("Збій з'єднання при оновленні продукту ID: {}", product.getID(), e);
             throw new RuntimeException("Не вдалося оновити продукт: " + e);
         }
     }
@@ -164,8 +176,9 @@ public class JdbcProductRepository implements ProductRepository {
              PreparedStatement prStmnt = conn.prepareStatement(sql)) {
             prStmnt.setLong(1, id);
             prStmnt.executeUpdate();
-            System.out.println("Продукт з ID " + id + " видалено.");
+            log.info("Продукт з ID {} успішно видалено.", id);
         } catch (SQLException e) {
+            log.error("Помилка видалення продукту з ID: {}. (Можливо, він використовується в салаті).", id, e);
             throw new RuntimeException("Не вдалося видалити продукт з ID: " + id, e);
         }
     }

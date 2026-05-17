@@ -5,6 +5,8 @@ import org.lpnu.chef_app.model.Product;
 import org.lpnu.chef_app.model.Salad;
 import org.lpnu.chef_app.model.enums.ProcessingState;
 import org.lpnu.chef_app.util.DatabaseConnector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -13,6 +15,7 @@ import java.util.Optional;
 
 public class JdbcSaladRepository implements SaladRepository {
 
+    private static final Logger log = LoggerFactory.getLogger(JdbcSaladRepository.class);
     private final ProductRepository productRepository = new JdbcProductRepository();
 
     @Override
@@ -51,19 +54,27 @@ public class JdbcSaladRepository implements SaladRepository {
             }
 
             conn.commit(); // Commiting transaction
-            System.out.println("Салат '" + salad.getName() + "' успішно збережено!");
+            log.info("Салат '{}' успішно збережено в БД з {} інгредієнтами.", salad.getName(), salad.getIngredients().size());
 
         } catch (SQLException e) {
             if (conn != null) {
-                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    log.error("Помилка відкату транзакції при збереженні салату", ex);
+                }
             }
+            log.error("Критична помилка БД при збереженні салату: {}", salad.getName(), e);
             throw new RuntimeException("Помилка БД при збереженні салату: " + salad.getName(), e);
         } finally {
             if (conn != null) {
-                try { conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    log.error("Помилка закриття з'єднання з БД", e);
+                }
             }
         }
-
     }
 
     @Override
@@ -72,8 +83,8 @@ public class JdbcSaladRepository implements SaladRepository {
         String sql = "SELECT * FROM salads";
 
         try (Connection conn = DatabaseConnector.getConnection();
-            Statement stmnt = conn.createStatement();
-            ResultSet res = stmnt.executeQuery(sql)) {
+             Statement stmnt = conn.createStatement();
+             ResultSet res = stmnt.executeQuery(sql)) {
 
             while (res.next()) {
                 Salad salad = new Salad(res.getString("name"));
@@ -82,6 +93,7 @@ public class JdbcSaladRepository implements SaladRepository {
                 salads.add(salad);
             }
         } catch (SQLException e) {
+            log.error("Не вдалося отримати список салатів з бази", e);
             throw new RuntimeException("Не вдалося отримати список салатів", e);
         }
 
@@ -107,6 +119,7 @@ public class JdbcSaladRepository implements SaladRepository {
                 }
             }
         } catch (SQLException e) {
+            log.error("Помилка завантаження інгредієнтів для салату ID: {}", saladId, e);
             throw new RuntimeException("Помилка завантаження інгредієнтів для салату ID: " + saladId, e);
         }
     }
@@ -115,11 +128,14 @@ public class JdbcSaladRepository implements SaladRepository {
     public void delete(Long id) {
         String sql = "DELETE FROM salads WHERE id = ?";
         try (Connection conn = DatabaseConnector.getConnection();
-            PreparedStatement prStmnt = conn.prepareStatement(sql)) {
+             PreparedStatement prStmnt = conn.prepareStatement(sql)) {
 
             prStmnt.setLong(1, id);
             prStmnt.executeUpdate();
+            log.info("Салат з ID {} успішно видалено.", id);
+
         } catch (SQLException e) {
+            log.error("Не вдалося видалити салат з ID: {}", id, e);
             throw new RuntimeException("Не вдалося видалити салат з ID: " + id, e);
         }
     }
@@ -161,18 +177,26 @@ public class JdbcSaladRepository implements SaladRepository {
             }
 
             conn.commit();
-            System.out.println("Салат '" + salad.getName() + "' (ID: " + id + ") успішно оновлено!");
+            log.info("Салат '{}' (ID: {}) успішно оновлено!", salad.getName(), id);
 
         } catch (SQLException e) {
             if (conn != null) {
-                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    log.error("Помилка відкату транзакції при оновленні салату", ex);
+                }
             }
+            log.error("Критична помилка БД при оновленні салату: {}", salad.getName(), e);
             throw new RuntimeException("Помилка БД при оновленні салату: " + salad.getName(), e);
         } finally {
             if (conn != null) {
-                try { conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    log.error("Помилка закриття з'єднання з БД", e);
+                }
             }
         }
     }
-
 }

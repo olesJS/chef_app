@@ -10,10 +10,13 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.stage.FileChooser;
 import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Comparator;
 
 public class RecipeBookController {
+    private static final Logger log = LoggerFactory.getLogger(RecipeBookController.class);
 
     @FXML private ListView<Salad> saladListView;
     @FXML private TextField searchSaladField;
@@ -45,6 +48,7 @@ public class RecipeBookController {
 
     @FXML
     public void initialize() {
+        log.info("Ініціалізація Книги рецептів.");
         this.filteredSalads = new FilteredList<>(allSalads, s -> true);
         setupTable();
         loadSalads();
@@ -91,6 +95,7 @@ public class RecipeBookController {
 
     private void loadSalads() {
         allSalads.setAll(saladRepository.findAll());
+        log.debug("Завантажено {} салатів у Книгу рецептів.", allSalads.size());
     }
 
     public void refresh() {
@@ -99,14 +104,12 @@ public class RecipeBookController {
     }
 
     private void setupSelectionListener() {
-        // Listener for salads list
         saladListView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 showSaladDetails(newVal);
             }
         });
 
-        // Listener for ingredients list (cooking tips)
         detailsTable.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null) {
                 String productName = newVal.getProduct().getName();
@@ -122,14 +125,11 @@ public class RecipeBookController {
         detailsTitleLabel.setText("Рецепт \"" + salad.getName() + "\"");
 
         ObservableList<Ingredient> masterList = FXCollections.observableArrayList(salad.getIngredients());
-
         this.filteredIngredients = new FilteredList<>(masterList, p -> true);
         detailsTable.setItems(this.filteredIngredients);
 
-        double totalNetto = salad.getIngredients().stream()
-                .mapToDouble(Ingredient::getWeight).sum();
-        double totalExit = salad.getIngredients().stream()
-                .mapToDouble(Ingredient::getFinalWeight).sum();
+        double totalNetto = salad.getIngredients().stream().mapToDouble(Ingredient::getWeight).sum();
+        double totalExit = salad.getIngredients().stream().mapToDouble(Ingredient::getFinalWeight).sum();
 
         lblTotalKcal.setText(String.format("%.1f ккал (Вага: %.0f г / Вихід: %.0f г)",
                 salad.getTotalCalories(), totalNetto, totalExit));
@@ -139,7 +139,6 @@ public class RecipeBookController {
         double c = salad.getIngredients().stream().mapToDouble(Ingredient::calculateCarbs).sum();
 
         lblMacros.setText(String.format("%.1f / %.1f / %.1f", p, f, c));
-
         exportButton.setDisable(false);
     }
 
@@ -155,9 +154,9 @@ public class RecipeBookController {
                 double kcal = ing.calculateCalories();
                 return kcal >= min && kcal <= max;
             });
+            log.info("Застосовано фільтр калорійності: від {} до {}", min, max);
         } catch (NumberFormatException e) {
-            // Якщо ввели не число, можна показати попередження
-            System.err.println("Введіть коректні числові значення калорій");
+            log.warn("Некоректне введення діапазону калорійності у фільтрі.");
         }
     }
 
@@ -168,58 +167,40 @@ public class RecipeBookController {
         if (filteredIngredients != null) {
             filteredIngredients.setPredicate(p -> true);
         }
+        log.info("Скинуто фільтр калорійності інгредієнтів.");
     }
 
     private void setupSearch() {
         searchSaladField.textProperty().addListener((obs, oldVal, newVal) -> {
             filteredSalads.setPredicate(salad -> {
-                if (newVal == null || newVal.trim().isEmpty()) {
-                    return true;
-                }
-
+                if (newVal == null || newVal.trim().isEmpty()) return true;
                 String filter = newVal.toLowerCase().trim();
-                boolean matchesName = salad.getName().toLowerCase().contains(filter);
-                boolean matchesId = String.valueOf(salad.getId()).contains(filter);
-
-                return matchesName || matchesId;
+                return salad.getName().toLowerCase().contains(filter) || String.valueOf(salad.getId()).contains(filter);
             });
         });
     }
 
     private void setupSortOptions() {
         sortComboBox.setItems(FXCollections.observableArrayList(
-                "Назвою (А-Я)",
-                "Калорійністю ↓",
-                "Калорійністю ↑",
-                "Вагою виходу ↓",
-                "Вагою виходу ↑"
+                "Назвою (А-Я)", "Калорійністю ↓", "Калорійністю ↑", "Вагою виходу ↓", "Вагою виходу ↑"
         ));
 
         sortComboBox.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && filteredIngredients != null) {
                 sortIngredients(newVal);
+                log.debug("Сортування інгредієнтів змінено на: {}", newVal);
             }
         });
     }
 
     private void sortIngredients(String criteria) {
         ObservableList<Ingredient> sourceList = (ObservableList<Ingredient>) filteredIngredients.getSource();
-
         switch (criteria) {
-            case "Назвою (А-Я)":
-                sourceList.sort(Comparator.comparing(ing -> ing.getProduct().getName()));
-                break;
-            case "Калорійністю ↓":
-                sourceList.sort(Comparator.comparingDouble(Ingredient::calculateCalories));
-                break;
-            case "Калорійністю ↑":
-                sourceList.sort((a, b) -> Double.compare(b.calculateCalories(), a.calculateCalories()));
-                break;
-            case "Вагою виходу ↓":
-                sourceList.sort(Comparator.comparingDouble(Ingredient::getFinalWeight));
-                break;
-            case "Вагою виходу ↑":
-                sourceList.sort((a, b) -> Double.compare(b.getFinalWeight(), a.getFinalWeight()));
+            case "Назвою (А-Я)": sourceList.sort(Comparator.comparing(ing -> ing.getProduct().getName())); break;
+            case "Калорійністю ↓": sourceList.sort(Comparator.comparingDouble(Ingredient::calculateCalories)); break;
+            case "Калорійністю ↑": sourceList.sort((a, b) -> Double.compare(b.calculateCalories(), a.calculateCalories())); break;
+            case "Вагою виходу ↓": sourceList.sort(Comparator.comparingDouble(Ingredient::getFinalWeight)); break;
+            case "Вагою виходу ↑": sourceList.sort((a, b) -> Double.compare(b.getFinalWeight(), a.getFinalWeight()));
         }
     }
 
@@ -227,12 +208,10 @@ public class RecipeBookController {
     void handleDeleteSalad() {
         Salad selected = saladListView.getSelectionModel().getSelectedItem();
 
-        if (selected == null) {
-            return;
-        }
+        if (selected == null) return;
 
         if (selected.getId() == null) {
-            System.err.println("Помилка: Салат не має ID, видалення неможливе.");
+            log.warn("Спроба видалення салату '{}' без ID.", selected.getName());
             return;
         }
 
@@ -241,9 +220,12 @@ public class RecipeBookController {
         alert.setHeaderText("Ви впевнені, що хочете видалити салат: " + selected.getName() + "?");
 
         if (alert.showAndWait().get() == ButtonType.OK) {
+            log.info("Користувач підтвердив видалення салату '{}' (ID: {})", selected.getName(), selected.getId());
             saladRepository.delete(selected.getId());
             loadSalads();
             resetDetailsView();
+        } else {
+            log.info("Користувач скасував видалення салату '{}'", selected.getName());
         }
     }
 
@@ -265,10 +247,10 @@ public class RecipeBookController {
         Salad selected = saladListView.getSelectionModel().getSelectedItem();
         if (selected != null) {
             if (mainController != null) {
-                System.out.println("Передаємо салат на редагування: " + selected.getName());
+                log.info("Ініційовано редагування салату '{}' (ID: {}). Передача управління MainController.", selected.getName(), selected.getId());
                 mainController.switchToEditMode(selected);
             } else {
-                System.err.println("Помилка: mainController не встановлено!");
+                log.error("Критична архітектурна помилка: MainController не встановлено у RecipeBookController!");
             }
         }
     }
@@ -281,16 +263,19 @@ public class RecipeBookController {
             return;
         }
 
+        log.info("Користувач ініціював експорт салату '{}' в TXT файл.", selected.getName());
+
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Зберегти рецепт");
         fileChooser.setInitialFileName(selected.getName() + ".txt");
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
 
-        // Saving Dialog
         java.io.File file = fileChooser.showSaveDialog(saladListView.getScene().getWindow());
 
         if (file != null) {
             saveToFile(selected, file);
+        } else {
+            log.info("Експорт скасовано користувачем.");
         }
     }
 
@@ -333,9 +318,11 @@ public class RecipeBookController {
 
             writer.println();
 
+            log.info("Рецепт салату '{}' успішно експортовано до файлу: {}", salad.getName(), file.getAbsolutePath());
             showAlert("Успіх", "Рецепт успішно збережено у файл: " + file.getName());
 
         } catch (java.io.IOException e) {
+            log.error("Помилка запису файлу експорту для салату '{}'", salad.getName(), e);
             showAlert("Помилка", "Не вдалося зберегти файл: " + e.getMessage());
         }
     }

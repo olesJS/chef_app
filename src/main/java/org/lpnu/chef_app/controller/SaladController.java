@@ -14,22 +14,23 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
-import java.util.List;
 
 public class SaladController {
+    private static final Logger log = LoggerFactory.getLogger(SaladController.class);
 
     @FXML private TextField saladNameField;
     @FXML private TextField searchProductField;
 
-    // Products table
     @FXML private TableView<Product> availableProductsTable;
     @FXML private TableColumn<Product, Long> colProdId;
     @FXML private TableColumn<Product, String> colProdName;
     @FXML private TableColumn<Product, String> colProdType;
     @FXML private TableColumn<Product, Double> colProdKcal;
 
-    // Ingredients table
     @FXML private TableView<Ingredient> saladIngredientsTable;
     @FXML private TableColumn<Ingredient, String> colIngName;
     @FXML private TableColumn<Ingredient, Double> colIngWeight;
@@ -46,7 +47,6 @@ public class SaladController {
     private ProductRepository productRepository = new JdbcProductRepository();
     private SaladRepository saladRepository = new JdbcSaladRepository();
 
-    // For tests
     public void setProductRepository(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }
@@ -62,12 +62,12 @@ public class SaladController {
 
     @FXML
     public void initialize() {
+        log.info("Ініціалізація конструктора салатів.");
         setupLeftTable();
         setupRightTable();
         loadAvailableProducts();
         setupSearch();
 
-        // Listener for updating stats when adding/deleting ingredients
         currentIngredients.addListener((javafx.collections.ListChangeListener.Change<? extends Ingredient> c) -> {
             updateStatistics();
         });
@@ -83,17 +83,10 @@ public class SaladController {
 
         searchProductField.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredProducts.setPredicate(product -> {
-                if (newValue == null || newValue.isEmpty()) {
-                    return true;
-                }
-
+                if (newValue == null || newValue.isEmpty()) return true;
                 String lowerCaseFilter = newValue.toLowerCase().trim();
-
-                // Searching by name
                 boolean matchesName = product.getName().toLowerCase().contains(lowerCaseFilter);
-                // Searching by ID
                 boolean matchesId = String.valueOf(product.getID()).contains(lowerCaseFilter);
-
                 return matchesName || matchesId;
             });
         });
@@ -106,38 +99,30 @@ public class SaladController {
         colProdName.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getName()));
         colProdType.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getType().toString()));
         colProdKcal.setCellValueFactory(cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getKcalPer100g()).asObject());
-
         availableProductsTable.setItems(filteredProducts);
     }
 
     private void setupRightTable() {
         colIngName.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getProduct().getName()));
-        colIngWeight.setCellValueFactory(cellData ->
-                new SimpleDoubleProperty(cellData.getValue().getWeight()).asObject());
-        colIngFinalWeight.setCellValueFactory(cellData ->
-                new SimpleDoubleProperty(cellData.getValue().getFinalWeight()).asObject());
+        colIngWeight.setCellValueFactory(cellData -> new SimpleDoubleProperty(cellData.getValue().getWeight()).asObject());
+        colIngFinalWeight.setCellValueFactory(cellData -> new SimpleDoubleProperty(cellData.getValue().getFinalWeight()).asObject());
         colIngState.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getState().getDisplayName()));
 
-        // Calculating kcals by ingredient final weight
         colIngKcal.setCellValueFactory(cellData -> {
             double kcal = cellData.getValue().calculateCalories();
             return new SimpleDoubleProperty(Math.round(kcal * 100.0) / 100.0).asObject();
         });
 
-        // Displaying preparation tips
         colIngName.setCellFactory(column -> new TableCell<>() {
             @Override
             protected void updateItem(String name, boolean empty) {
                 super.updateItem(name, empty);
-
                 if (empty || name == null) {
                     setText(null);
                     setTooltip(null);
                 } else {
                     setText(name);
-
                     Ingredient ing = getTableRow().getItem();
-
                     if (ing != null) {
                         ing.getCookingTip().ifPresent(tip -> {
                             Tooltip tooltip = new Tooltip(tip);
@@ -167,7 +152,9 @@ public class SaladController {
     public void loadAvailableProducts() {
         try {
             availableProducts.setAll(productRepository.findAll());
+            log.debug("Оновлено список доступних продуктів для конструктора.");
         } catch (RuntimeException e) {
+            log.error("Помилка завантаження доступних продуктів", e);
             showErrorAlert("Помилка завантаження", "Не вдалося отримати список продуктів: " + e.getMessage());
         }
     }
@@ -175,7 +162,12 @@ public class SaladController {
     @FXML
     void handleAddIngredient() {
         Product selectedProduct = availableProductsTable.getSelectionModel().getSelectedItem();
-        if (selectedProduct == null) return;
+        if (selectedProduct == null) {
+            log.warn("Спроба додати інгредієнт без виділення продукту в таблиці.");
+            return;
+        }
+
+        log.info("Відкриття діалогу додавання інгредієнта для продукту: {}", selectedProduct.getName());
 
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/lpnu/chef_app/dialogs/add-ingredient-dialog.fxml"));
@@ -192,10 +184,12 @@ public class SaladController {
             dialogStage.showAndWait();
 
             if (controller.isOkClicked()) {
-                currentIngredients.add(controller.getResultIngredient());
+                Ingredient newIngredient = controller.getResultIngredient();
+                currentIngredients.add(newIngredient);
+                log.info("До салату додано інгредієнт: {}, вага: {} г", newIngredient.getProduct().getName(), newIngredient.getWeight());
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Помилка завантаження FXML файлу для діалогу інгредієнта", e);
         }
     }
 
@@ -204,6 +198,7 @@ public class SaladController {
         Ingredient selected = saladIngredientsTable.getSelectionModel().getSelectedItem();
         if (selected != null) {
             currentIngredients.remove(selected);
+            log.info("З салату видалено інгредієнт: {}", selected.getProduct().getName());
         }
     }
 
@@ -228,6 +223,7 @@ public class SaladController {
     void handleClearSalad() {
         currentIngredients.clear();
         saladNameField.clear();
+        log.info("Форму конструктора салатів було повністю очищено.");
     }
 
     public void loadSaladForEditing(Salad salad) {
@@ -235,11 +231,13 @@ public class SaladController {
         saladNameField.setText(salad.getName());
         currentIngredients.setAll(salad.getIngredients());
         saveButton.setText("Оновити рецепт");
+        log.info("Салат '{}' (ID: {}) успішно завантажено в конструктор для редагування.", salad.getName(), salad.getId());
     }
 
     @FXML
     void handleSaveSalad() {
         String saladName = saladNameField.getText().trim();
+        log.info("Користувач натиснув 'Зберегти' для салату: '{}'", saladName);
 
         Salad salad = new Salad(saladName);
         currentIngredients.forEach(salad::addIngredient);
@@ -248,9 +246,11 @@ public class SaladController {
             if (editingSaladId != null) {
                 saladRepository.update(salad, editingSaladId);
                 showAlert("Оновлено", "Зміни в салаті збережено!");
+                log.info("Успішно оновлено існуючий салат '{}' (ID: {})", saladName, editingSaladId);
             } else {
                 saladRepository.save(salad);
                 showAlert("Збережено", "Новий салат створено!");
+                log.info("Успішно створено новий салат '{}'", saladName);
             }
 
             handleClearSalad();
@@ -258,6 +258,7 @@ public class SaladController {
             saveButton.setText("Зберегти рецепт");
 
         } catch (RuntimeException e) {
+            log.error("Не вдалося зберегти/оновити салат '{}' через помилку БД.", saladName, e);
             showErrorAlert("Помилка бази даних", "Не вдалося зберегти салат: " + e.getMessage());
         }
     }
@@ -277,5 +278,4 @@ public class SaladController {
         alert.setContentText(content);
         alert.showAndWait();
     }
-
 }
