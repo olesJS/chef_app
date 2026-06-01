@@ -93,7 +93,7 @@ public class RecipeBookController {
         });
     }
 
-    private void loadSalads() {
+    void loadSalads() {
         allSalads.setAll(saladRepository.findAll());
         log.debug("Завантажено {} салатів у Книгу рецептів.", allSalads.size());
     }
@@ -256,7 +256,7 @@ public class RecipeBookController {
     }
 
     @FXML
-    private void handleExportToTxt() {
+    void handleExportToTxt() {
         Salad selected = saladListView.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showAlert("Помилка", "Будь ласка, оберіть салат для експорту.");

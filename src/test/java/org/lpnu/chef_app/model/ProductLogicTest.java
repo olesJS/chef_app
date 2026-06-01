@@ -92,6 +92,24 @@ class ProductLogicTest {
     }
 
     @Test
+    @DisplayName("Тест Dressing: поради залежно від жирної основи")
+    void testDressingPreparationTip() {
+        // isFatBased = true
+        Dressing fatBasedDressing = new Dressing(10L, "Майонез домашній", 680.0, 1.0, 75.0, 2.6, true);
+
+        Optional<String> fatTip = fatBasedDressing.getPreparationTip();
+        assertTrue(fatTip.isPresent(), "Для жирної заправки має бути присутня порада");
+        assertEquals("Ретельно збовтайте заправку для створення однорідної емульсії перед додаванням у салат.",
+                fatTip.get());
+
+        // isFatBased = false
+        Dressing waterBasedDressing = new Dressing(11L, "Лимонний сік", 22.0, 0.4, 0.2, 6.9, false);
+
+        Optional<String> waterTip = waterBasedDressing.getPreparationTip();
+        assertFalse(waterTip.isPresent(), "Для нежирної заправки поради бути не повинно");
+    }
+
+    @Test
     @DisplayName("Тест RootVegetable: перевірка типу, вмісту цукру та логіки порад")
     void testRootVegetableCompletion() {
         RootVegetable carrot = new RootVegetable(3L, "Морква", 41, 0.9, 0.1, 9.6, 12.0);

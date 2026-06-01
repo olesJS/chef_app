@@ -2,10 +2,7 @@ package org.lpnu.chef_app.controller;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -132,6 +129,86 @@ public class SaladControllerTest extends ApplicationTest {
     }
 
     @Test
+    @DisplayName("handleAddIngredient() обробляє NumberFormatException при некоректній вазі")
+    void testAddIngredientInvalidWeightExceptionHandling() {
+        TableView<Product> productsTable = lookup("#availableProductsTable").queryTableView();
+        TableView<Ingredient> ingredientsTable = lookup("#saladIngredientsTable").queryTableView();
+
+        interact(() -> productsTable.getSelectionModel().select(dummyProduct));
+
+        clickOn("#addIngredientButton");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        clickOn("#weightField").write("не_число");
+
+        clickOn("Додати");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Checking if ingredient was not added because of the exception
+        assertEquals(0, ingredientsTable.getItems().size(), "Інгредієнт не повинен додаватися при некоректній вазі");
+
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
+        clickOn("Скасувати");
+    }
+
+    @Test
+    @DisplayName("handleAddIngredient() при натисканні 'Скасувати' викликає handleCancel() і закриває діалог")
+    void testAddIngredientCancelAction() {
+        TableView<Product> productsTable = lookup("#availableProductsTable").queryTableView();
+        TableView<Ingredient> ingredientsTable = lookup("#saladIngredientsTable").queryTableView();
+
+        interact(() -> productsTable.getSelectionModel().select(dummyProduct));
+
+        clickOn("#addIngredientButton");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // handleCancel
+        clickOn("#weightField").write("250");
+        clickOn("Скасувати");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        assertEquals(0, ingredientsTable.getItems().size(), "Таблиця має залишитися порожньою після скасування");
+
+        Button addBtn = lookup("#addIngredientButton").queryButton();
+        assertNotNull(addBtn);
+        assertTrue(addBtn.isVisible());
+    }
+
+    @Test
+    @DisplayName("handleAddIngredient() блокує стан на RAW для заправок (DRESSING)")
+    void testAddIngredientDressingStateDisabling() {
+        Product dressingProduct = new Dressing(99L, "Тестова олія", 884.0, 0.0, 100.0, 0.0, true);
+
+        when(mockProductRepo.findAll()).thenReturn(List.of(dummyProduct, dressingProduct));
+
+        interact(() -> {
+            controller.loadAvailableProducts();
+
+            TableView<Product> productsTable = lookup("#availableProductsTable").queryTableView();
+            productsTable.getSelectionModel().select(1);
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+
+        clickOn("#addIngredientButton");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        ComboBox<ProcessingState> stateComboBox = lookup("#stateComboBox").queryComboBox();
+        assertAll("Перевірка налаштування діалогу для заправки",
+                () -> assertTrue(stateComboBox.isDisable(), "Для заправки вибір стану обробки має бути заблоковано"),
+                () -> assertEquals(ProcessingState.RAW, stateComboBox.getValue(), "Стан обробки має скинутися на RAW"),
+                () -> assertEquals("Не потребує обробки", stateComboBox.getPromptText(), "Prompt text має відповідати логіці заправки")
+        );
+
+        clickOn("Скасувати");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        when(mockProductRepo.findAll()).thenReturn(List.of(dummyProduct));
+        interact(() -> controller.loadAvailableProducts());
+        WaitForAsyncUtils.waitForFxEvents();
+    }
+
+    @Test
     @DisplayName("handleRemoveIngredient() успішно видаляє обраний рядок")
     void testRemoveIngredientAction() {
         TableView<Ingredient> ingredientsTable = lookup("#saladIngredientsTable").queryTableView();
@@ -187,21 +264,29 @@ public class SaladControllerTest extends ApplicationTest {
 
         TableView<Ingredient> ingredientsTable = lookup("#saladIngredientsTable").queryTableView();
         interact(() -> ingredientsTable.getItems().add(new Ingredient(dummyProduct, 100, ProcessingState.RAW)));
+        WaitForAsyncUtils.waitForFxEvents();
 
-        // SAVE
-        try {
-            interact(() -> controller.handleSaveSalad());
-        } catch (Exception ignored) { }
+        // Saving new receipt
+        javafx.application.Platform.runLater(() -> controller.handleSaveSalad());
+        WaitForAsyncUtils.waitForFxEvents();
+
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
+
         verify(mockSaladRepo, times(1)).save(any(Salad.class));
 
-        // UPDATE
+        // Updating
         Salad editSalad = new Salad("Старий");
         editSalad.setId(99L);
         interact(() -> controller.loadSaladForEditing(editSalad));
+        WaitForAsyncUtils.waitForFxEvents();
 
-        try {
-            interact(() -> controller.handleSaveSalad());
-        } catch (Exception ignored) {}
+        // Must work as 'update'
+        javafx.application.Platform.runLater(() -> controller.handleSaveSalad());
+        WaitForAsyncUtils.waitForFxEvents();
+
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
 
         verify(mockSaladRepo, times(1)).update(any(Salad.class), eq(99L));
     }
@@ -214,9 +299,18 @@ public class SaladControllerTest extends ApplicationTest {
             TableView<Ingredient> table = lookup("#saladIngredientsTable").queryTableView();
             table.getItems().add(new Ingredient(dummyProduct, 100, ProcessingState.RAW));
         });
+        WaitForAsyncUtils.waitForFxEvents();
 
+        // Critical DB error
         doThrow(new RuntimeException("Connection lost")).when(mockSaladRepo).save(any(Salad.class));
-        assertDoesNotThrow(() -> interact(() -> controller.handleSaveSalad()));
+
+        javafx.application.Platform.runLater(() -> controller.handleSaveSalad());
+        WaitForAsyncUtils.waitForFxEvents();
+
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        assertDoesNotThrow(() -> {});
     }
 
 }

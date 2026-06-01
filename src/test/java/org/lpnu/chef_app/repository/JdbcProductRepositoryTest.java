@@ -183,4 +183,69 @@ class JdbcProductRepositoryTest {
         assertEquals(Allergen.EGGS, ((Topping) repository.findById(5L).get()).getAllergen());
     }
 
+    @Test
+    @DisplayName("findAll() перехоплює SQLException і повертає RuntimeException (блок catch)")
+    void testFindAllThrowsRuntimeExceptionOnDatabaseError() throws SQLException {
+        // Deleting tables before querying
+        try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DROP TABLE products CASCADE");
+        }
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> repository.findAll());
+        assertTrue(exception.getMessage().contains("Не вдалося отримати дані з бази"));
+        assertNotNull(exception.getCause(), "Оригінальний SQLException має бути збережений як Cause");
+    }
+
+    @Test
+    @DisplayName("findById() перехоплює SQLException і повертає RuntimeException (блок catch)")
+    void testFindByIdThrowsRuntimeExceptionOnDatabaseError() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DROP TABLE products CASCADE");
+        }
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> repository.findById(1L));
+        assertTrue(exception.getMessage().contains("Не вдалося отримати дані з бази"));
+    }
+
+    @Test
+    @DisplayName("save() успішно виконує conn.rollback() при помилці всередині транзакції (блок catch SQLExpcetion)")
+    void testSaveRollbacksTransactionOnSQLException() {
+        // Saving product with ID=1
+        RootVegetable standardCarrot = new RootVegetable(null, "Звичайна морква", 40.0, 1.0, 0.0, 9.0, 5.0);
+        repository.save(standardCarrot);
+
+        // Creating a new product (also with ID=1)
+        RootVegetable brokenCarrot = new RootVegetable(1L, "Збійна транзакція", 50.0, 1.0, 0.0, 10.0, 4.0);
+
+        // INSERT error in chlid table, ok in parent table
+        try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DROP TABLE root_vegetables CASCADE");
+        } catch (SQLException ignored) {}
+
+        // Checking if save() was catched and transaction was rollbacked
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> repository.save(brokenCarrot));
+
+        assertTrue(exception.getMessage().contains("Транзакція провалилась"));
+    }
+
+    @Test
+    @DisplayName("save() перехоплює збій з'єднання на самому початку транзакції")
+    void testSaveCatchesConnectionFailure() throws SQLException {
+        Product testProduct = new RootVegetable(null, "Морква Нова", 40.0, 1.0, 0.0, 9.0, 5.0);
+
+        // Deleting tables
+        try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("DROP TABLE products CASCADE");
+        }
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> repository.save(testProduct));
+
+        // Checking outer catch()
+        assertTrue(exception.getMessage().contains("Помилка при збереженні продукту") || exception.getMessage().contains("Транзакція провалилась"));
+    }
+
 }

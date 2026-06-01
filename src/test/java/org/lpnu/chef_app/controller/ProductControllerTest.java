@@ -3,6 +3,7 @@ package org.lpnu.chef_app.controller;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -147,5 +148,114 @@ public class ProductControllerTest extends ApplicationTest {
             clickOn("Зберегти");
             WaitForAsyncUtils.waitForFxEvents();
         });
+    }
+
+    @Test
+    @DisplayName("Сортування продуктів за назвою та ID змінює порядок елементів у таблиці")
+    void testApplySortingLogic() {
+        TableView<Product> table = lookup("#productTable").queryTableView();
+        ComboBox<String> sortBox = lookup("#sortComboBox").queryComboBox();
+
+        // Sorting by name
+        interact(() -> sortBox.getSelectionModel().select("Назва (А-Я)"));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals("Морква", table.getItems().get(0).getName());
+        assertEquals("Оливкова олія", table.getItems().get(1).getName());
+
+        Product p3 = new RootVegetable(3L, "Авокадо", 160.0, 2.0, 14.6, 8.5, 0.5);
+        when(mockRepo.findAll()).thenReturn(List.of(p1, p2, p3));
+
+        interact(() -> controller.initialize());
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // "Авокадо" must be first after sorting
+        interact(() -> sortBox.getSelectionModel().select("Назва (А-Я)"));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals("Авокадо", table.getItems().get(0).getName());
+
+        interact(() -> sortBox.getSelectionModel().select("ID (за зростанням)"));
+        WaitForAsyncUtils.waitForFxEvents();
+        assertEquals(1L, table.getItems().get(0).getID());
+        assertEquals(2L, table.getItems().get(1).getID());
+        assertEquals(3L, table.getItems().get(2).getID());
+    }
+
+    @Test
+    @DisplayName("handleDeleteAction() та handleEditAction() показують Warning Alert, якщо продукт не вибрано (блок else)")
+    void testActionsWithoutSelectionTriggersShowAlert() {
+        TableView<Product> table = lookup("#productTable").queryTableView();
+
+        interact(() -> table.getSelectionModel().clearSelection());
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Testing 'else' branch for deleting
+        javafx.application.Platform.runLater(() -> controller.handleDeleteAction());
+        WaitForAsyncUtils.waitForFxEvents();
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        // Testing 'else' branch for editing
+        javafx.application.Platform.runLater(() -> controller.handleEditAction());
+        WaitForAsyncUtils.waitForFxEvents();
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
+
+        verify(mockRepo, never()).delete(anyLong());
+    }
+
+    @Test
+    @DisplayName("Відображення специфічних деталей (getSpecificDetails) для різних підкласів Product")
+    void testGetSpecificDetailsFormatting() {
+        Product tuber = new org.lpnu.chef_app.model.TuberVegetable(3L, "Картопля", 77.0, 2.0, 0.4, 16.0, 15.0);
+        Product fruiting = new org.lpnu.chef_app.model.FruitingVegetable(4L, "Томат", 18.0, 0.9, 0.2, 3.9, 94.5);
+        Product leafy = new org.lpnu.chef_app.model.LeafyVegetable(5L, "Шпинат", 23.0, 2.9, 0.4, 3.6, 2.2);
+        Product topping = new org.lpnu.chef_app.model.Topping(6L, "Волоський горіх", 654.0, 15.2, 65.2, 13.7, org.lpnu.chef_app.model.enums.Allergen.NUTS, true);
+        Product lightDressing = new Dressing(7L, "Лимонний сік", 22.0, 0.4, 0.2, 6.9, false);
+
+        when(mockRepo.findAll()).thenReturn(List.of(p1, p2, tuber, fruiting, leafy, topping, lightDressing));
+
+        interact(() -> {
+            try {
+                java.lang.reflect.Method loadMethod = ProductController.class.getDeclaredMethod("loadProducts");
+                loadMethod.setAccessible(true);
+                loadMethod.invoke(controller);
+            } catch (Exception e) {
+                controller.initialize();
+            }
+        });
+        WaitForAsyncUtils.waitForFxEvents();
+
+        TableView<Product> table = lookup("#productTable").queryTableView();
+
+        TableColumn<Product, ?> detailsColumn = table.getColumns().stream()
+                .filter(col -> col.getText() != null && (col.getText().equalsIgnoreCase("Деталі") || col.getText().contains("деталі")))
+                .findFirst()
+                .orElse((TableColumn<Product, ?>) table.getColumns().get(table.getColumns().size() - 1));
+
+        assertEquals("Цукор: 5.0%", detailsColumn.getCellData(0));
+        assertEquals("На жирній основі", detailsColumn.getCellData(1));
+        assertEquals("Крохмаль: 15.0%", detailsColumn.getCellData(2));
+        assertEquals("Вода: 94.5%", detailsColumn.getCellData(3));
+        assertEquals("Клітковина: 2.2%", detailsColumn.getCellData(4));
+        assertEquals("Алерген: Горіхи", detailsColumn.getCellData(5));
+        assertEquals("Легка заправка", detailsColumn.getCellData(6));
+    }
+
+    @Test
+    @DisplayName("handleDeleteAction() перехоплює RuntimeException від бази даних (блок catch)")
+    void testDeleteActionDatabaseExceptionHandling() {
+        TableView<Product> table = lookup("#productTable").queryTableView();
+
+        doThrow(new RuntimeException("Помилка зв'язку з БД при видаленні")).when(mockRepo).delete(1L);
+
+        interact(() -> table.getSelectionModel().select(p1));
+
+        javafx.application.Platform.runLater(() -> controller.handleDeleteAction());
+        WaitForAsyncUtils.waitForFxEvents();
+
+        verify(mockRepo, times(1)).delete(1L);
+
+        clickOn("OK");
+        WaitForAsyncUtils.waitForFxEvents();
     }
 }
