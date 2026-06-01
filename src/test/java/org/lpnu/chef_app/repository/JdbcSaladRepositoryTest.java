@@ -74,34 +74,6 @@ class JdbcSaladRepositoryTest {
     }
 
     @Test
-    @DisplayName("update(): зміна назви салату та складу інгредієнтів")
-    void testUpdateSalad() {
-        // Initial product
-        RootVegetable product1 = new RootVegetable(null, "Продукт 1", 10, 1, 1, 1, 1);
-        productRepository.save(product1);
-
-        Salad salad = new Salad("Старий Салат");
-        salad.addIngredient(new Ingredient(product1, 100, ProcessingState.RAW));
-        saladRepository.save(salad); // ID: 1
-
-        // Updating salad
-        Salad updatedSalad = new Salad("Новий Салат");
-
-        // Creating another product
-        RootVegetable product2 = new RootVegetable(null, "Продукт 2", 20, 2, 2, 2, 2);
-        productRepository.save(product2);
-
-        // Adding product2 to salad (product ID is not null now)
-        updatedSalad.addIngredient(new Ingredient(product2, 300, ProcessingState.BOILED));
-        // Updating salad (ID: 1)
-        assertDoesNotThrow(() -> saladRepository.update(updatedSalad, 1L));
-
-        List<Salad> results = saladRepository.findAll();
-        assertEquals("Новий Салат", results.get(0).getName());
-        assertEquals("Продукт 2", results.get(0).getIngredients().get(0).getProduct().getName());
-    }
-
-    @Test
     @DisplayName("delete(): повне видалення салату та його інгредієнтів")
     void testDeleteSalad() throws SQLException {
         Salad salad = new Salad("На видалення");
@@ -184,7 +156,7 @@ class JdbcSaladRepositoryTest {
                 stmt.execute("DROP TABLE salads CASCADE");
             } catch (SQLException ignored) {}
 
-            RuntimeException exception = assertThrows(RuntimeException.class, () -> saladRepository.update(saladToUpdate, 1L));
+            RuntimeException exception = assertThrows(RuntimeException.class, () -> saladRepository.update(saladToUpdate));
             assertTrue(exception.getMessage().contains("Помилка БД при оновленні салату"));
 
         } finally {
@@ -287,5 +259,87 @@ class JdbcSaladRepositoryTest {
         assertTrue(exception.getMessage().contains("Не вдалося отримати список салатів"));
         assertNotNull(exception.getCause(), "Оригінальний SQLException має бути збережений як Cause");
     }
+
+    @Test
+    @DisplayName("update(): викидає IllegalArgumentException, якщо ID салату рівний null")
+    void testUpdateSaladThrowsExceptionWhenIdIsNull() {
+        Salad saladWithNullId = new Salad("Салат без ID");
+
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            saladRepository.update(saladWithNullId);
+        });
+
+        assertEquals("Не вдається оновити салат без ідентифікатора (ID).", exception.getMessage());
+    }
+
+    @Test
+    @DisplayName("update(): успішна зміна назви салату та складу його інгредієнтів (Happy Path)")
+    void testUpdateSaladSuccessWorkflow() {
+        RootVegetable product1 = new RootVegetable(null, "Продукт 1", 10, 1, 1, 1, 1);
+        productRepository.save(product1);
+
+        Salad salad = new Salad("Старий Салат");
+        salad.addIngredient(new Ingredient(product1, 100, ProcessingState.RAW));
+        saladRepository.save(salad);
+
+        Long generatedId = salad.getId();
+        assertNotNull(generatedId, "База даних мала згенерувати ID при збереженні");
+
+        Salad updatedSalad = new Salad("Новий Салат");
+        updatedSalad.setId(generatedId);
+
+        RootVegetable product2 = new RootVegetable(null, "Продукт 2", 20, 2, 2, 2, 2);
+        productRepository.save(product2);
+        updatedSalad.addIngredient(new Ingredient(product2, 300, ProcessingState.BOILED));
+
+        assertDoesNotThrow(() -> saladRepository.update(updatedSalad));
+
+        List<Salad> results = saladRepository.findAll();
+        assertFalse(results.isEmpty());
+
+        Salad fetchedSalad = results.stream()
+                .filter(s -> s.getId().equals(generatedId))
+                .findFirst()
+                .orElseThrow(() -> new AssertionError("Оновлений салат не знайдено в БД"));
+
+        assertEquals("Новий Салат", fetchedSalad.getName(), "Назва салату мала змінитися");
+        assertEquals(1, fetchedSalad.getIngredients().size(), "Салат повинен мати рівно 1 новий інгредієнт");
+        assertEquals("Продукт 2", fetchedSalad.getIngredients().get(0).getProduct().getName(), "Продукт мав замінитися");
+        assertEquals(300.0, fetchedSalad.getIngredients().get(0).getWeight(), "Вага мала оновитися");
+        assertEquals(ProcessingState.BOILED, fetchedSalad.getIngredients().get(0).getState(), "Стан обробки мав змінитися");
+    }
+
+    @Test
+    @DisplayName("update(): перехоплює SQLException, робить rollback та викидає RuntimeException")
+    void testUpdateSaladHandlesExceptionAndRollsBack() {
+        RootVegetable product = new RootVegetable(null, "Томат", 18, 1, 0, 4, 94);
+        productRepository.save(product);
+
+        Salad salad = new Salad("Грецький");
+        salad.addIngredient(new Ingredient(product, 150, ProcessingState.RAW));
+        saladRepository.save(salad);
+
+        Salad brokenSalad = new Salad("Збійний Салат");
+        brokenSalad.setId(salad.getId());
+
+        // Foreign Key Constraint
+        Product nonExistentProduct = new RootVegetable(-999L, "Фейк", 0, 0, 0, 0, 0);
+        brokenSalad.addIngredient(new Ingredient(nonExistentProduct, 100, ProcessingState.RAW));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            saladRepository.update(brokenSalad);
+        });
+
+        assertNotNull(exception.getMessage());
+
+        List<Salad> results = saladRepository.findAll();
+        Salad revertedSalad = results.stream()
+                .filter(s -> s.getId().equals(salad.getId()))
+                .findFirst()
+                .orElseThrow();
+        assertEquals("Грецький", revertedSalad.getName());
+        assertEquals("Томат", revertedSalad.getIngredients().get(0).getProduct().getName());
+    }
+
 
 }

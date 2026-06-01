@@ -98,7 +98,6 @@ public class JdbcProductRepository implements ProductRepository {
                 Allergen allergen = (allergenStr != null) ? Allergen.valueOf(allergenStr) : Allergen.NONE;
                 yield new Topping(id, name, kcal, proteins, fats, carbs, allergen, res.getBoolean("is_crunchy"));
             }
-            default -> throw new IllegalStateException("Unexpected product type: " + type);
         };
     }
 
@@ -114,14 +113,16 @@ public class JdbcProductRepository implements ProductRepository {
                 ps.setDouble(3, product.getProteins());
                 ps.setDouble(4, product.getFats());
                 ps.setDouble(5, product.getCarbs());
-                ps.setString(6, getProductType(product));
+
+                ps.setString(6, product.getType().name());
                 ps.executeUpdate();
 
-                ResultSet res = ps.getGeneratedKeys();
-                if (res.next()) {
-                    long id = res.getLong(1);
-                    product.setID(id);
-                    saveSpecificData(conn, id, product);
+                try (ResultSet res = ps.getGeneratedKeys()) {
+                    if (res.next()) {
+                        long id = res.getLong(1);
+                        product.setID(id);
+                        saveSpecificData(conn, id, product);
+                    }
                 }
                 conn.commit();
                 log.info("Продукт '{}' успішно збережено в БД з ID: {}", product.getName(), product.getID());
@@ -183,45 +184,34 @@ public class JdbcProductRepository implements ProductRepository {
         }
     }
 
-    private String getProductType(Product p) {
-        if (p instanceof RootVegetable) return "ROOT_VEGETABLE";
-        if (p instanceof TuberVegetable) return "TUBER_VEGETABLE";
-        if (p instanceof FruitingVegetable) return "FRUITING_VEGETABLE";
-        if (p instanceof LeafyVegetable) return "LEAFY_VEGETABLE";
-        if (p instanceof Dressing) return "DRESSING";
-        if (p instanceof Topping) return "TOPPING";
-        return "UNKNOWN";
-    }
-
     private void saveSpecificData(Connection conn, long id, Product p) throws SQLException {
-        String sql = "";
-        if (p instanceof RootVegetable rv) {
-            sql = "INSERT INTO root_vegetables (product_id, sugar_content) VALUES (?, ?)";
-            executeSpecificUpdate(conn, sql, id, rv.getSugarContent());
-        } else if (p instanceof TuberVegetable tv) {
-            sql = "INSERT INTO tuber_vegetables (product_id, starch_content) VALUES (?, ?)";
-            executeSpecificUpdate(conn, sql, id, tv.getStarchContent());
-        } else if (p instanceof FruitingVegetable fv) {
-            sql = "INSERT INTO fruiting_vegetables (product_id, water_content_percent) VALUES (?, ?)";
-            executeSpecificUpdate(conn, sql, id, fv.getWaterContentPercent());
-        } else if (p instanceof LeafyVegetable lv) {
-            sql = "INSERT INTO leafy_vegetables (product_id, fiber_content) VALUES (?, ?)";
-            executeSpecificUpdate(conn, sql, id, lv.getFiberContent());
-        } else if (p instanceof Dressing d) {
-            sql = "INSERT INTO dressings (product_id, is_fat_based) VALUES (?, ?)";
-            try (PreparedStatement prStmnt = conn.prepareStatement(sql)) {
-                prStmnt.setLong(1, id);
-                prStmnt.setBoolean(2, d.getIsFatBased());
-                prStmnt.executeUpdate();
+        switch (p) {
+            case RootVegetable rv ->
+                    executeSpecificUpdate(conn, "INSERT INTO root_vegetables (product_id, sugar_content) VALUES (?, ?)", id, rv.getSugarContent());
+            case TuberVegetable tv ->
+                    executeSpecificUpdate(conn, "INSERT INTO tuber_vegetables (product_id, starch_content) VALUES (?, ?)", id, tv.getStarchContent());
+            case FruitingVegetable fv ->
+                    executeSpecificUpdate(conn, "INSERT INTO fruiting_vegetables (product_id, water_content_percent) VALUES (?, ?)", id, fv.getWaterContentPercent());
+            case LeafyVegetable lv ->
+                    executeSpecificUpdate(conn, "INSERT INTO leafy_vegetables (product_id, fiber_content) VALUES (?, ?)", id, lv.getFiberContent());
+            case Dressing d -> {
+                String sql = "INSERT INTO dressings (product_id, is_fat_based) VALUES (?, ?)";
+                try (PreparedStatement prStmnt = conn.prepareStatement(sql)) {
+                    prStmnt.setLong(1, id);
+                    prStmnt.setBoolean(2, d.getIsFatBased());
+                    prStmnt.executeUpdate();
+                }
             }
-        } else if (p instanceof Topping t) {
-            sql = "INSERT INTO toppings (product_id, allergen, is_crunchy) VALUES (?, ?, ?)";
-            try (PreparedStatement prStmnt = conn.prepareStatement(sql)) {
-                prStmnt.setLong(1, id);
-                prStmnt.setString(2, t.getAllergen().name());
-                prStmnt.setBoolean(3, t.getIsCrunchy());
-                prStmnt.executeUpdate();
+            case Topping t -> {
+                String sql = "INSERT INTO toppings (product_id, allergen, is_crunchy) VALUES (?, ?, ?)";
+                try (PreparedStatement prStmnt = conn.prepareStatement(sql)) {
+                    prStmnt.setLong(1, id);
+                    prStmnt.setString(2, t.getAllergen().name());
+                    prStmnt.setBoolean(3, t.getIsCrunchy());
+                    prStmnt.executeUpdate();
+                }
             }
+            default -> throw new IllegalArgumentException("Невідомий тип продукту для збереження: " + p.getClass().getName());
         }
     }
 
@@ -234,51 +224,57 @@ public class JdbcProductRepository implements ProductRepository {
     }
 
     private void updateSpecificData(Connection conn, Product p) throws SQLException {
-        String sql;
-
-        if (p instanceof RootVegetable rv) {
-            sql = "UPDATE root_vegetables SET sugar_content = ? WHERE product_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setDouble(1, rv.getSugarContent());
-                ps.setLong(2, rv.getID());
-                ps.executeUpdate();
+        switch (p) {
+            case RootVegetable rv -> {
+                String sql = "UPDATE root_vegetables SET sugar_content = ? WHERE product_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setDouble(1, rv.getSugarContent());
+                    ps.setLong(2, rv.getID());
+                    ps.executeUpdate();
+                }
             }
-        } else if (p instanceof TuberVegetable tv) {
-            sql = "UPDATE tuber_vegetables SET starch_content = ? WHERE product_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setDouble(1, tv.getStarchContent());
-                ps.setLong(2, tv.getID());
-                ps.executeUpdate();
+            case TuberVegetable tv -> {
+                String sql = "UPDATE tuber_vegetables SET starch_content = ? WHERE product_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setDouble(1, tv.getStarchContent());
+                    ps.setLong(2, tv.getID());
+                    ps.executeUpdate();
+                }
             }
-        } else if (p instanceof FruitingVegetable fv) {
-            sql = "UPDATE fruiting_vegetables SET water_content_percent = ? WHERE product_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setDouble(1, fv.getWaterContentPercent());
-                ps.setLong(2, fv.getID());
-                ps.executeUpdate();
+            case FruitingVegetable fv -> {
+                String sql = "UPDATE fruiting_vegetables SET water_content_percent = ? WHERE product_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setDouble(1, fv.getWaterContentPercent());
+                    ps.setLong(2, fv.getID());
+                    ps.executeUpdate();
+                }
             }
-        } else if (p instanceof LeafyVegetable lv) {
-            sql = "UPDATE leafy_vegetables SET fiber_content = ? WHERE product_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setDouble(1, lv.getFiberContent());
-                ps.setLong(2, lv.getID());
-                ps.executeUpdate();
+            case LeafyVegetable lv -> {
+                String sql = "UPDATE leafy_vegetables SET fiber_content = ? WHERE product_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setDouble(1, lv.getFiberContent());
+                    ps.setLong(2, lv.getID());
+                    ps.executeUpdate();
+                }
             }
-        } else if (p instanceof Dressing d) {
-            sql = "UPDATE dressings SET is_fat_based = ? WHERE product_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setBoolean(1, d.getIsFatBased());
-                ps.setLong(2, d.getID());
-                ps.executeUpdate();
+            case Dressing d -> {
+                String sql = "UPDATE dressings SET is_fat_based = ? WHERE product_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setBoolean(1, d.getIsFatBased());
+                    ps.setLong(2, d.getID());
+                    ps.executeUpdate();
+                }
             }
-        } else if (p instanceof Topping t) {
-            sql = "UPDATE toppings SET allergen = ?, is_crunchy = ? WHERE product_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, t.getAllergen().name());
-                ps.setBoolean(2, t.getIsCrunchy());
-                ps.setLong(3, t.getID());
-                ps.executeUpdate();
+            case Topping t -> {
+                String sql = "UPDATE toppings SET allergen = ?, is_crunchy = ? WHERE product_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, t.getAllergen().name());
+                    ps.setBoolean(2, t.getIsCrunchy());
+                    ps.setLong(3, t.getID());
+                    ps.executeUpdate();
+                }
             }
+            default -> throw new IllegalArgumentException("Невідомий тип продукту для оновлення: " + p.getClass().getName());
         }
     }
 }

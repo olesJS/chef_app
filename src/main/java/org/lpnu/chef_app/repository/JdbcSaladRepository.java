@@ -36,6 +36,7 @@ public class JdbcSaladRepository implements SaladRepository {
                 try (ResultSet generatedKeys = prStmnt.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
                         saladId = generatedKeys.getLong(1);
+                        salad.setId(saladId);
                     } else {
                         throw new SQLException("Не вдалося отримати ID салату.");
                     }
@@ -141,7 +142,12 @@ public class JdbcSaladRepository implements SaladRepository {
     }
 
     @Override
-    public void update(Salad salad, Long id) {
+    public void update(Salad salad) {
+        if (salad.getId() == null) {
+            throw new IllegalArgumentException("Не вдається оновити салат без ідентифікатора (ID).");
+        }
+
+        Long id = salad.getId();
         String updateSaladSql = "UPDATE salads SET name = ? WHERE id = ?";
         String deleteIngredientsSql = "DELETE FROM ingredients WHERE salad_id = ?";
         String insertIngredientSql = "INSERT INTO ingredients (salad_id, product_id, weight_grams, processing_state) VALUES (?, ?, ?, ?)";
@@ -177,7 +183,7 @@ public class JdbcSaladRepository implements SaladRepository {
             }
 
             conn.commit();
-            log.info("Салат '{}' (ID: {}) успішно оновлено!", salad.getName(), id);
+            log.info("Салат '{}' (ID: {}) успішно оновлено через репозиторій!", salad.getName(), id);
 
         } catch (SQLException e) {
             if (conn != null) {

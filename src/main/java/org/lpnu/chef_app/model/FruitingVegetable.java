@@ -28,4 +28,9 @@ public class FruitingVegetable extends Vegetable {
         return ProductType.FRUITING_VEGETABLE;
     }
 
+    @Override
+    public String getSpecificDetails() {
+        return "Вода: " + this.waterContentPercent + "%";
+    }
+
 }

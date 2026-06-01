@@ -13,7 +13,9 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.lpnu.chef_app.model.*;
-import org.lpnu.chef_app.repository.*;
+import org.lpnu.chef_app.service.ProductService;
+import org.lpnu.chef_app.service.SaladService;
+import org.lpnu.chef_app.service.ServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,25 +46,26 @@ public class SaladController {
 
     @FXML private Button saveButton;
 
-    private ProductRepository productRepository = new JdbcProductRepository();
-    private SaladRepository saladRepository = new JdbcSaladRepository();
+    private ProductService productService = ServiceFactory.getProductService();
+    private SaladService saladService = ServiceFactory.getSaladService();
 
-    public void setProductRepository(ProductRepository productRepository) {
-        this.productRepository = productRepository;
+    // For tests
+    public void setProductService(ProductService productService) {
+        this.productService = productService;
     }
-    public void setSaladRepository(SaladRepository saladRepository) {
-        this.saladRepository = saladRepository;
+    public void setSaladService(SaladService saladService) {
+        this.saladService = saladService;
     }
 
     private FilteredList<Product> filteredProducts;
-    private ObservableList<Product> availableProducts = FXCollections.observableArrayList();
-    private ObservableList<Ingredient> currentIngredients = FXCollections.observableArrayList();
+    private final ObservableList<Product> availableProducts = FXCollections.observableArrayList();
+    private final ObservableList<Ingredient> currentIngredients = FXCollections.observableArrayList();
 
     private Long editingSaladId = null;
 
     @FXML
     public void initialize() {
-        log.info("Ініціалізація конструктора салатів.");
+        log.info("Ініціалізація конструктора салатів через сервісний шар.");
         setupLeftTable();
         setupRightTable();
         loadAvailableProducts();
@@ -97,7 +100,12 @@ public class SaladController {
     private void setupLeftTable() {
         colProdId.setCellValueFactory(cellData -> new javafx.beans.property.SimpleLongProperty(cellData.getValue().getID()).asObject());
         colProdName.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getName()));
-        colProdType.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getType().toString()));
+        colProdType.setCellValueFactory(cellData -> {
+            if (cellData.getValue().getType() != null) {
+                return new SimpleStringProperty(cellData.getValue().getType().getDisplayName());
+            }
+            return new SimpleStringProperty("Невідомо");
+        });
         colProdKcal.setCellValueFactory(cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getKcalPer100g()).asObject());
         availableProductsTable.setItems(filteredProducts);
     }
@@ -151,10 +159,10 @@ public class SaladController {
 
     public void loadAvailableProducts() {
         try {
-            availableProducts.setAll(productRepository.findAll());
-            log.debug("Оновлено список доступних продуктів для конструктора.");
+            availableProducts.setAll(productService.getAllProducts());
+            log.debug("Оновлено список доступних продуктів через сервісний шар.");
         } catch (RuntimeException e) {
-            log.error("Помилка завантаження доступних продуктів", e);
+            log.error("Помилка завантаження доступних продуктів через сервіс", e);
             showErrorAlert("Помилка завантаження", "Не вдалося отримати список продуктів: " + e.getMessage());
         }
     }
@@ -237,29 +245,33 @@ public class SaladController {
     @FXML
     void handleSaveSalad() {
         String saladName = saladNameField.getText().trim();
-        log.info("Користувач натиснув 'Зберегти' для салату: '{}'", saladName);
+        log.info("Користувач ініціював збереження рецепту салату через UI: '{}'", saladName);
 
         Salad salad = new Salad(saladName);
+        salad.setId(editingSaladId);
         currentIngredients.forEach(salad::addIngredient);
 
         try {
+            saladService.saveSalad(salad);
+
             if (editingSaladId != null) {
-                saladRepository.update(salad, editingSaladId);
                 showAlert("Оновлено", "Зміни в салаті збережено!");
-                log.info("Успішно оновлено існуючий салат '{}' (ID: {})", saladName, editingSaladId);
+                log.info("Успішно оновлено рецепт салату '{}' через сервісний шар.", saladName);
             } else {
-                saladRepository.save(salad);
                 showAlert("Збережено", "Новий салат створено!");
-                log.info("Успішно створено новий салат '{}'", saladName);
+                log.info("Успішно створено новий рецепт салату '{}' через сервісний шар.", saladName);
             }
 
             handleClearSalad();
             editingSaladId = null;
             saveButton.setText("Зберегти рецепт");
 
+        } catch (IllegalArgumentException e) {
+            log.warn("Сервісний шар відхилив збереження рецепту салату через некоректні дані.", e);
+            showErrorAlert("Помилка валідації рецепту", e.getMessage());
         } catch (RuntimeException e) {
-            log.error("Не вдалося зберегти/оновити салат '{}' через помилку БД.", saladName, e);
-            showErrorAlert("Помилка бази даних", "Не вдалося зберегти салат: " + e.getMessage());
+            log.error("Критична помилка виконання бізнес-операції збереження салату '{}'", saladName, e);
+            showErrorAlert("Помилка збереження", "Не вдалося виконати операцію: " + e.getMessage());
         }
     }
 
@@ -274,7 +286,7 @@ public class SaladController {
     private void showErrorAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
-        alert.setHeaderText("Сталася помилка при роботі з БД");
+        alert.setHeaderText("Помилка обробки бізнес-операції");
         alert.setContentText(content);
         alert.showAndWait();
     }

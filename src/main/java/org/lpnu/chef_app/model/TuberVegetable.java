@@ -31,4 +31,9 @@ public class TuberVegetable extends Vegetable {
         return ProductType.TUBER_VEGETABLE;
     }
 
+    @Override
+    public String getSpecificDetails() {
+        return "Крохмаль: " + this.starchContent + "%";
+    }
+
 }

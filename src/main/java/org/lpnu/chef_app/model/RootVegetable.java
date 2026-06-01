@@ -29,4 +29,9 @@ public class RootVegetable extends Vegetable {
         return ProductType.ROOT_VEGETABLE;
     }
 
+    @Override
+    public String getSpecificDetails() {
+        return "Цукор: " + this.sugarContent + "%";
+    }
+
 }

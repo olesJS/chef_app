@@ -39,4 +39,9 @@ public class Topping extends Product {
         return ProductType.TOPPING;
     }
 
+    @Override
+    public String getSpecificDetails() {
+        return "Алерген: " + (this.allergen != null ? this.allergen.getDisplayName() : "Немає");
+    }
+
 }

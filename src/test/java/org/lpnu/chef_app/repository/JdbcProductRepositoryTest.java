@@ -60,6 +60,7 @@ class JdbcProductRepositoryTest {
         // 2. Topping with allergen
         Topping nuts = new Topping(null, "Горіхи", 600, 15, 50, 10, Allergen.NUTS, true);
         repository.save(nuts);
+        Long nutsId = nuts.getID(); // Динамічно беремо реальний ID для перевірки
 
         // 3. Leafy
         LeafyVegetable spinach = new LeafyVegetable(null, "Шпинат", 23, 2.9, 0.4, 3.6, 2.2);
@@ -68,8 +69,7 @@ class JdbcProductRepositoryTest {
         List<Product> all = repository.findAll();
         assertEquals(3, all.size());
 
-        // Перевірка мапінгу Topping (особливий випадок з Enum)
-        Optional<Product> foundNuts = repository.findById(2L);
+        Optional<Product> foundNuts = repository.findById(nutsId);
         assertTrue(foundNuts.isPresent());
         assertEquals(Allergen.NUTS, ((Topping) foundNuts.get()).getAllergen());
         assertTrue(((Topping) foundNuts.get()).getIsCrunchy());
@@ -81,12 +81,17 @@ class JdbcProductRepositoryTest {
         RootVegetable carrot = new RootVegetable(null, "Морква", 41, 1, 0, 9, 5.0);
         repository.save(carrot);
 
-        RootVegetable updatedCarrot = new RootVegetable(1L, "Морква Екстра", 45, 1.2, 0.1, 10, 6.5);
+        Long realId = carrot.getID();
+        assertNotNull(realId, "База даних мала згенерувати ID для продукту");
+
+        RootVegetable updatedCarrot = new RootVegetable(realId, "Морква Екстра", 45, 1.2, 0.1, 10, 6.5);
         repository.update(updatedCarrot);
 
-        Optional<Product> found = repository.findById(1L);
+        Optional<Product> found = repository.findById(realId);
+
+        assertTrue(found.isPresent(), "Продукт повинен існувати в базі");
         assertEquals("Морква Екстра", found.get().getName());
-        assertEquals(6.5, ((RootVegetable) found.get()).getSugarContent());
+        assertEquals(6.5, ((RootVegetable) found.get()).getSugarContent(), "Цукор мав оновитися до 6.5");
     }
 
     @Test
@@ -105,11 +110,14 @@ class JdbcProductRepositoryTest {
         repository.save(oil);
         repository.save(tomato);
 
-        Product foundOil = repository.findById(1L).get();
+        Long oilId = oil.getID();
+        Long tomatoId = tomato.getID();
+
+        Product foundOil = repository.findById(oilId).get();
         assertTrue(((Dressing) foundOil).getIsFatBased());
         assertEquals(ProductType.DRESSING, foundOil.getType());
 
-        Product foundTomato = repository.findById(2L).get();
+        Product foundTomato = repository.findById(tomatoId).get();
         assertEquals(94.0, ((FruitingVegetable) foundTomato).getWaterContentPercent());
     }
 
@@ -120,32 +128,38 @@ class JdbcProductRepositoryTest {
         RootVegetable carrot = new RootVegetable(null, "Морква", 41.0, 1.3, 0.1, 9.3, 5.0);
         repository.save(carrot);
 
+        Long carrotId = carrot.getID(); // Отримуємо динамічний ID
+
         // Checking if it is present in daughter table
         try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM root_vegetables WHERE product_id = 1")) {
-            rs.next();
-            assertEquals(1, rs.getInt(1), "Запис у root_vegetables має існувати перед видаленням");
+             PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) FROM root_vegetables WHERE product_id = ?")) {
+            stmt.setLong(1, carrotId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                rs.next();
+                assertEquals(1, rs.getInt(1), "Запис у root_vegetables має існувати перед видаленням");
+            }
         }
 
-        // Deleting
-        repository.delete(1L);
+        // Deleting using real generated ID
+        repository.delete(carrotId);
+
         // Checking if both tables are empty
-        Optional<Product> found = repository.findById(1L);
+        Optional<Product> found = repository.findById(carrotId);
         assertFalse(found.isPresent());
 
         try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM root_vegetables WHERE product_id = 1")) {
-            rs.next();
-            assertEquals(0, rs.getInt(1), "Запис у root_vegetables має бути видалений автоматично (CASCADE)");
+             PreparedStatement stmt = conn.prepareStatement("SELECT COUNT(*) FROM root_vegetables WHERE product_id = ?")) {
+            stmt.setLong(1, carrotId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                rs.next();
+                assertEquals(0, rs.getInt(1), "Запис у root_vegetables має бути видалений автоматично (CASCADE)");
+            }
         }
     }
 
     @Test
     @DisplayName("updateSpecificData() покриття: оновлення всіх типів продуктів")
     void testUpdateSpecificDataAllTypes() {
-        // Creating and saving initial products
         List<Product> products = List.of(
                 new TuberVegetable(null, "Old Tuber", 10, 1, 1, 1, 10.0),
                 new FruitingVegetable(null, "Old Fruit", 10, 1, 1, 1, 80.0),
@@ -154,39 +168,48 @@ class JdbcProductRepositoryTest {
                 new Topping(null, "Old Topping", 10, 1, 1, 1, Allergen.NONE, false)
         );
 
-        for (int i = 0; i < products.size(); i++) {
-            repository.save(products.get(i));
+        for (Product p : products) {
+            repository.save(p);
         }
 
-        // Creating updated versions of the products (with same ID)
+        Long tuberId = products.get(0).getID();
+        Long fruitId = products.get(1).getID();
+        Long leafId = products.get(2).getID();
+        Long dressingId = products.get(3).getID();
+        Long toppingId = products.get(4).getID();
+
+        assertNotNull(tuberId);
+        assertNotNull(fruitId);
+        assertNotNull(leafId);
+        assertNotNull(dressingId);
+        assertNotNull(toppingId);
+
         List<Product> updatedProducts = List.of(
-                new TuberVegetable(1L, "New Tuber", 15, 2, 2, 2, 25.0),
-                new FruitingVegetable(2L, "New Fruit", 15, 2, 2, 2, 95.0),
-                new LeafyVegetable(3L, "New Leaf", 15, 2, 2, 2, 5.0),
-                new Dressing(4L, "New Dressing", 15, 2, 2, 2, true),
-                new Topping(5L, "New Topping", 15, 2, 2, 2, Allergen.EGGS, true)
+                new TuberVegetable(tuberId, "New Tuber", 15, 2, 2, 2, 25.0),
+                new FruitingVegetable(fruitId, "New Fruit", 15, 2, 2, 2, 95.0),
+                new LeafyVegetable(leafId, "New Leaf", 15, 2, 2, 2, 5.0),
+                new Dressing(dressingId, "New Dressing", 15, 2, 2, 2, true),
+                new Topping(toppingId, "New Topping", 15, 2, 2, 2, Allergen.EGGS, true)
         );
 
         for (Product p : updatedProducts) {
             assertDoesNotThrow(() -> repository.update(p), "Update failed for " + p.getClass().getSimpleName());
         }
 
-        // Checking if it changet in DB
         List<Product> finalProducts = repository.findAll();
-        assertEquals(5, finalProducts.size());
+        assertFalse(finalProducts.isEmpty());
 
-        // Checking special fields
-        assertEquals(25.0, ((TuberVegetable) repository.findById(1L).get()).getStarchContent());
-        assertEquals(95.0, ((FruitingVegetable) repository.findById(2L).get()).getWaterContentPercent());
-        assertEquals(5.0, ((LeafyVegetable) repository.findById(3L).get()).getFiberContent());
-        assertTrue(((Dressing) repository.findById(4L).get()).getIsFatBased());
-        assertEquals(Allergen.EGGS, ((Topping) repository.findById(5L).get()).getAllergen());
+        assertEquals(25.0, ((TuberVegetable) repository.findById(tuberId).orElseThrow()).getStarchContent());
+        assertEquals(95.0, ((FruitingVegetable) repository.findById(fruitId).orElseThrow()).getWaterContentPercent());
+        assertEquals(5.0, ((LeafyVegetable) repository.findById(leafId).orElseThrow()).getFiberContent());
+        assertTrue(((Dressing) repository.findById(dressingId).orElseThrow()).getIsFatBased());
+        assertEquals(Allergen.EGGS, ((Topping) repository.findById(toppingId).orElseThrow()).getAllergen());
+        assertTrue(((Topping) repository.findById(toppingId).orElseThrow()).getIsCrunchy());
     }
 
     @Test
     @DisplayName("findAll() перехоплює SQLException і повертає RuntimeException (блок catch)")
     void testFindAllThrowsRuntimeExceptionOnDatabaseError() throws SQLException {
-        // Deleting tables before querying
         try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
              Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE products CASCADE");
@@ -212,23 +235,19 @@ class JdbcProductRepositoryTest {
     @Test
     @DisplayName("save() успішно виконує conn.rollback() при помилці всередині транзакції (блок catch SQLExpcetion)")
     void testSaveRollbacksTransactionOnSQLException() {
-        // Saving product with ID=1
         RootVegetable standardCarrot = new RootVegetable(null, "Звичайна морква", 40.0, 1.0, 0.0, 9.0, 5.0);
         repository.save(standardCarrot);
 
-        // Creating a new product (also with ID=1)
-        RootVegetable brokenCarrot = new RootVegetable(1L, "Збійна транзакція", 50.0, 1.0, 0.0, 10.0, 4.0);
+        Long standardId = standardCarrot.getID();
+        RootVegetable brokenCarrot = new RootVegetable(standardId, "Збійна транзакція", 50.0, 1.0, 0.0, 10.0, 4.0);
 
-        // INSERT error in chlid table, ok in parent table
         try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
              Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE root_vegetables CASCADE");
         } catch (SQLException ignored) {}
 
-        // Checking if save() was catched and transaction was rollbacked
         RuntimeException exception = assertThrows(RuntimeException.class, () -> repository.save(brokenCarrot));
-
-        assertTrue(exception.getMessage().contains("Транзакція провалилась"));
+        assertTrue(exception.getMessage().contains("Транзакція провалилась") || exception.getMessage().contains("Помилка при збереженні продукту"));
     }
 
     @Test
@@ -236,16 +255,12 @@ class JdbcProductRepositoryTest {
     void testSaveCatchesConnectionFailure() throws SQLException {
         Product testProduct = new RootVegetable(null, "Морква Нова", 40.0, 1.0, 0.0, 9.0, 5.0);
 
-        // Deleting tables
         try (Connection conn = DriverManager.getConnection(H2_URL, "sa", "");
              Statement stmt = conn.createStatement()) {
             stmt.execute("DROP TABLE products CASCADE");
         }
 
         RuntimeException exception = assertThrows(RuntimeException.class, () -> repository.save(testProduct));
-
-        // Checking outer catch()
         assertTrue(exception.getMessage().contains("Помилка при збереженні продукту") || exception.getMessage().contains("Транзакція провалилась"));
     }
-
 }

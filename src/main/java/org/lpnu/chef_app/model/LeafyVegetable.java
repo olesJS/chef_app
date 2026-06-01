@@ -28,4 +28,9 @@ public class LeafyVegetable extends Vegetable {
         return ProductType.LEAFY_VEGETABLE;
     }
 
+    @Override
+    public String getSpecificDetails() {
+        return "Клітковина: " + this.fiberContent + "%";
+    }
+
 }

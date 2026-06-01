@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.lpnu.chef_app.model.Dressing;
 import org.lpnu.chef_app.model.Product;
 import org.lpnu.chef_app.model.RootVegetable;
-import org.lpnu.chef_app.repository.ProductRepository;
+import org.lpnu.chef_app.service.ProductService;
 import org.mockito.Mockito;
 import org.testfx.framework.junit5.ApplicationTest;
 import org.testfx.util.WaitForAsyncUtils;
@@ -26,25 +26,25 @@ import static org.mockito.Mockito.*;
 public class ProductControllerTest extends ApplicationTest {
 
     private ProductController controller;
-    private ProductRepository mockRepo;
+    private ProductService mockService;
     private Product p1, p2;
 
     @Override
     public void start(Stage stage) throws Exception {
         Locale.setDefault(Locale.US); // For doubles (0.0 instead of 0,0)
 
-        mockRepo = Mockito.mock(ProductRepository.class);
+        mockService = Mockito.mock(ProductService.class);
 
         p1 = new RootVegetable(1L, "Морква", 41.0, 1.0, 0.0, 9.0, 5.0);
         p2 = new Dressing(2L, "Оливкова олія", 899.0, 0.0, 99.0, 0.0, true);
 
-        when(mockRepo.findAll()).thenReturn(List.of(p1, p2));
+        when(mockService.getAllProducts()).thenReturn(List.of(p1, p2));
 
         FXMLLoader loader = new FXMLLoader(Thread.currentThread().getContextClassLoader().getResource("org/lpnu/chef_app/views/products-view.fxml"));
         Scene scene = new Scene(loader.load());
 
         controller = loader.getController();
-        controller.setProductRepository(mockRepo);
+        controller.setProductService(mockService);
 
         interact(() -> controller.initialize());
 
@@ -87,7 +87,7 @@ public class ProductControllerTest extends ApplicationTest {
     }
 
     @Test
-    @DisplayName("Видалення продукту викликає метод репозиторію delete()")
+    @DisplayName("Видалення продукту викликає метод сервісу deleteProduct()")
     void testDeleteAction() {
         TableView<Product> table = lookup("#productTable").queryTableView();
 
@@ -95,11 +95,11 @@ public class ProductControllerTest extends ApplicationTest {
         interact(() -> controller.handleDeleteAction());
 
         WaitForAsyncUtils.waitForFxEvents();
-        verify(mockRepo, times(1)).delete(1L);
+        verify(mockService, times(1)).deleteProduct(1L);
     }
 
     @Test
-    @DisplayName("handleEditAction() відкриває діалог з даними існуючого продукту та викликає update()")
+    @DisplayName("handleEditAction() відкриває діалог з даними існуюcego продукту та викликає saveProduct()")
     void testEditProductWorkflow() {
         TableView<Product> table = lookup("#productTable").queryTableView();
 
@@ -119,13 +119,13 @@ public class ProductControllerTest extends ApplicationTest {
         clickOn("Зберегти");
         WaitForAsyncUtils.waitForFxEvents();
 
-        verify(mockRepo, times(1)).update(any(Product.class));
+        verify(mockService, times(1)).saveProduct(any(Product.class));
     }
 
     @Test
     @DisplayName("showProductDialog перехоплює RuntimeException при збереженні і показує помилку")
     void testProductDialogDatabaseExceptionHandling() {
-        doThrow(new RuntimeException("Помилка зв'язку з Postgres")).when(mockRepo).save(any(Product.class));
+        doThrow(new RuntimeException("Помилка зв'язку з Postgres")).when(mockService).saveProduct(any(Product.class));
 
         try {
             clickOn("#addProductButton");
@@ -163,7 +163,7 @@ public class ProductControllerTest extends ApplicationTest {
         assertEquals("Оливкова олія", table.getItems().get(1).getName());
 
         Product p3 = new RootVegetable(3L, "Авокадо", 160.0, 2.0, 14.6, 8.5, 0.5);
-        when(mockRepo.findAll()).thenReturn(List.of(p1, p2, p3));
+        when(mockService.getAllProducts()).thenReturn(List.of(p1, p2, p3));
 
         interact(() -> controller.initialize());
         WaitForAsyncUtils.waitForFxEvents();
@@ -200,7 +200,7 @@ public class ProductControllerTest extends ApplicationTest {
         clickOn("OK");
         WaitForAsyncUtils.waitForFxEvents();
 
-        verify(mockRepo, never()).delete(anyLong());
+        verify(mockService, never()).deleteProduct(anyLong());
     }
 
     @Test
@@ -212,7 +212,7 @@ public class ProductControllerTest extends ApplicationTest {
         Product topping = new org.lpnu.chef_app.model.Topping(6L, "Волоський горіх", 654.0, 15.2, 65.2, 13.7, org.lpnu.chef_app.model.enums.Allergen.NUTS, true);
         Product lightDressing = new Dressing(7L, "Лимонний сік", 22.0, 0.4, 0.2, 6.9, false);
 
-        when(mockRepo.findAll()).thenReturn(List.of(p1, p2, tuber, fruiting, leafy, topping, lightDressing));
+        when(mockService.getAllProducts()).thenReturn(List.of(p1, p2, tuber, fruiting, leafy, topping, lightDressing));
 
         interact(() -> {
             try {
@@ -246,14 +246,14 @@ public class ProductControllerTest extends ApplicationTest {
     void testDeleteActionDatabaseExceptionHandling() {
         TableView<Product> table = lookup("#productTable").queryTableView();
 
-        doThrow(new RuntimeException("Помилка зв'язку з БД при видаленні")).when(mockRepo).delete(1L);
+        doThrow(new RuntimeException("Помилка зв'язку з БД при видаленні")).when(mockService).deleteProduct(1L);
 
         interact(() -> table.getSelectionModel().select(p1));
 
         javafx.application.Platform.runLater(() -> controller.handleDeleteAction());
         WaitForAsyncUtils.waitForFxEvents();
 
-        verify(mockRepo, times(1)).delete(1L);
+        verify(mockService, times(1)).deleteProduct(1L);
 
         clickOn("OK");
         WaitForAsyncUtils.waitForFxEvents();

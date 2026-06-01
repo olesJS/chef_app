@@ -8,8 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.model.enums.ProcessingState;
-import org.lpnu.chef_app.repository.ProductRepository;
-import org.lpnu.chef_app.repository.SaladRepository;
+import org.lpnu.chef_app.service.ProductService;
+import org.lpnu.chef_app.service.SaladService;
 import org.mockito.Mockito;
 import org.testfx.framework.junit5.ApplicationTest;
 import org.testfx.util.WaitForAsyncUtils;
@@ -21,26 +21,26 @@ import static org.mockito.Mockito.*;
 public class SaladControllerTest extends ApplicationTest {
 
     private SaladController controller;
-    private ProductRepository mockProductRepo;
-    private SaladRepository mockSaladRepo;
+    private ProductService mockProductService;
+    private SaladService mockSaladService;
     private Product dummyProduct;
 
     @Override
     public void start(Stage stage) throws Exception {
         java.util.Locale.setDefault(java.util.Locale.US);
 
-        mockProductRepo = Mockito.mock(ProductRepository.class);
-        mockSaladRepo = Mockito.mock(SaladRepository.class);
+        mockProductService = Mockito.mock(ProductService.class);
+        mockSaladService = Mockito.mock(SaladService.class);
 
         dummyProduct = new RootVegetable(1L, "Морква", 40.0, 1.0, 0.0, 9.0, 5.0);
-        when(mockProductRepo.findAll()).thenReturn(List.of(dummyProduct));
+        when(mockProductService.getAllProducts()).thenReturn(List.of(dummyProduct));
 
         FXMLLoader loader = new FXMLLoader(Thread.currentThread().getContextClassLoader().getResource("org/lpnu/chef_app/views/salads-view.fxml"));
         Scene scene = new Scene(loader.load());
 
         controller = loader.getController();
-        controller.setProductRepository(mockProductRepo);
-        controller.setSaladRepository(mockSaladRepo);
+        controller.setProductService(mockProductService);
+        controller.setSaladService(mockSaladService);
         controller.loadAvailableProducts();
 
         stage.setScene(scene);
@@ -180,7 +180,7 @@ public class SaladControllerTest extends ApplicationTest {
     void testAddIngredientDressingStateDisabling() {
         Product dressingProduct = new Dressing(99L, "Тестова олія", 884.0, 0.0, 100.0, 0.0, true);
 
-        when(mockProductRepo.findAll()).thenReturn(List.of(dummyProduct, dressingProduct));
+        when(mockProductService.getAllProducts()).thenReturn(List.of(dummyProduct, dressingProduct));
 
         interact(() -> {
             controller.loadAvailableProducts();
@@ -203,7 +203,7 @@ public class SaladControllerTest extends ApplicationTest {
         clickOn("Скасувати");
         WaitForAsyncUtils.waitForFxEvents();
 
-        when(mockProductRepo.findAll()).thenReturn(List.of(dummyProduct));
+        when(mockProductService.getAllProducts()).thenReturn(List.of(dummyProduct));
         interact(() -> controller.loadAvailableProducts());
         WaitForAsyncUtils.waitForFxEvents();
     }
@@ -258,7 +258,7 @@ public class SaladControllerTest extends ApplicationTest {
     }
 
     @Test
-    @DisplayName("handleSaveSalad() викликає потрібний метод репозиторію (Новий / Редагування)")
+    @DisplayName("handleSaveSalad() делегує збереження уніфікованому методу сервісу saveSalad()")
     void testSaveAndUpdateRepositoryCalls() {
         clickOn("#saladNameField").write("Грецький");
 
@@ -266,33 +266,31 @@ public class SaladControllerTest extends ApplicationTest {
         interact(() -> ingredientsTable.getItems().add(new Ingredient(dummyProduct, 100, ProcessingState.RAW)));
         WaitForAsyncUtils.waitForFxEvents();
 
-        // Saving new receipt
+        // Testing saving new salad
         javafx.application.Platform.runLater(() -> controller.handleSaveSalad());
         WaitForAsyncUtils.waitForFxEvents();
 
         clickOn("OK");
         WaitForAsyncUtils.waitForFxEvents();
 
-        verify(mockSaladRepo, times(1)).save(any(Salad.class));
+        verify(mockSaladService, times(1)).saveSalad(any(Salad.class));
 
-        // Updating
         Salad editSalad = new Salad("Старий");
         editSalad.setId(99L);
         interact(() -> controller.loadSaladForEditing(editSalad));
         WaitForAsyncUtils.waitForFxEvents();
 
-        // Must work as 'update'
         javafx.application.Platform.runLater(() -> controller.handleSaveSalad());
         WaitForAsyncUtils.waitForFxEvents();
 
         clickOn("OK");
         WaitForAsyncUtils.waitForFxEvents();
 
-        verify(mockSaladRepo, times(1)).update(any(Salad.class), eq(99L));
+        verify(mockSaladService, times(2)).saveSalad(any(Salad.class));
     }
 
     @Test
-    @DisplayName("handleSaveSalad() перехоплює RuntimeException від бази і не ламає UI")
+    @DisplayName("handleSaveSalad() перехоплює RuntimeException від сервісу і не ламає UI")
     void testSaveSaladDatabaseExceptionHandling() {
         clickOn("#saladNameField").write("Збійний Салат");
         interact(() -> {
@@ -301,8 +299,7 @@ public class SaladControllerTest extends ApplicationTest {
         });
         WaitForAsyncUtils.waitForFxEvents();
 
-        // Critical DB error
-        doThrow(new RuntimeException("Connection lost")).when(mockSaladRepo).save(any(Salad.class));
+        doThrow(new RuntimeException("Connection lost")).when(mockSaladService).saveSalad(any(Salad.class));
 
         javafx.application.Platform.runLater(() -> controller.handleSaveSalad());
         WaitForAsyncUtils.waitForFxEvents();
@@ -312,5 +309,4 @@ public class SaladControllerTest extends ApplicationTest {
 
         assertDoesNotThrow(() -> {});
     }
-
 }

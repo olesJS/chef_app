@@ -28,4 +28,9 @@ public class Dressing extends Product {
         return ProductType.DRESSING;
     }
 
+    @Override
+    public String getSpecificDetails() {
+        return this.isFatBased ? "На жирній основі" : "Легка заправка";
+    }
+
 }

@@ -13,8 +13,8 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.lpnu.chef_app.model.*;
 import org.lpnu.chef_app.model.enums.ProductType;
-import org.lpnu.chef_app.repository.JdbcProductRepository;
-import org.lpnu.chef_app.repository.ProductRepository;
+import org.lpnu.chef_app.service.ProductService;
+import org.lpnu.chef_app.service.ServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,16 +40,18 @@ public class ProductController {
     private static final String SORT_BY_NAME = "Назва (А-Я)";
     private static final String SORT_BY_ID = "ID (за зростанням)";
 
-    private ProductRepository productRepository = new JdbcProductRepository();
-    public void setProductRepository(ProductRepository productRepository) {
-        this.productRepository = productRepository;
+    private ProductService productService = ServiceFactory.getProductService();
+
+    // For Mockito
+    public void setProductService(ProductService productService) {
+        this.productService = productService;
     }
 
-    private ObservableList<Product> masterData = FXCollections.observableArrayList();
+    private final ObservableList<Product> masterData = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
-        log.info("Ініціалізація контролера продуктів.");
+        log.info("Ініціалізація контролера продуктів через сервісний шар.");
         setupTableColumns();
         setupFilters();
 
@@ -68,11 +70,11 @@ public class ProductController {
     private void loadProducts() {
         try {
             masterData.clear();
-            masterData.addAll(productRepository.findAll());
+            masterData.addAll(productService.getAllProducts());
             applySorting(sortComboBox.getValue());
-            log.info("Успішно завантажено {} продуктів з бази даних.", masterData.size());
+            log.info("Успішно завантажено {} продуктів через сервісний шар.", masterData.size());
         } catch (RuntimeException e) {
-            log.error("Не вдалося завантажити список продуктів", e);
+            log.error("Не вдалося завантажити список продуктів через сервіс", e);
             showErrorAlert("Помилка завантаження", "Не вдалося отримати список продуктів: " + e.getMessage());
         }
     }
@@ -102,8 +104,10 @@ public class ProductController {
         });
 
         colDetails.setCellValueFactory(cellData -> {
-            Product p = cellData.getValue();
-            return new javafx.beans.property.SimpleStringProperty(getSpecificDetails(p));
+            Product product = cellData.getValue();
+            return new javafx.beans.property.SimpleStringProperty(
+                    product != null ? product.getSpecificDetails() : "-"
+            );
         });
     }
 
@@ -132,16 +136,6 @@ public class ProductController {
         });
     }
 
-    private String getSpecificDetails(Product p) {
-        if (p instanceof RootVegetable rv) return "Цукор: " + rv.getSugarContent() + "%";
-        if (p instanceof TuberVegetable tv) return "Крохмаль: " + tv.getStarchContent() + "%";
-        if (p instanceof FruitingVegetable fv) return "Вода: " + fv.getWaterContentPercent() + "%";
-        if (p instanceof LeafyVegetable lv) return "Клітковина: " + lv.getFiberContent() + "%";
-        if (p instanceof Dressing d) return d.getIsFatBased() ? "На жирній основі" : "Легка заправка";
-        if (p instanceof Topping t) return "Алерген: " + t.getAllergen().getDisplayName();
-        return "-";
-    }
-
     private void showProductDialog(Product product) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/org/lpnu/chef_app/dialogs/product-dialog.fxml"));
@@ -161,17 +155,15 @@ public class ProductController {
 
             if (controller.isSaveClicked() && controller.getProduct() != null) {
                 try {
-                    if (product == null) {
-                        productRepository.save(controller.getProduct());
-                        log.info("Новий продукт успішно створено.");
-                    } else {
-                        productRepository.update(controller.getProduct());
-                        log.info("Продукт '{}' успішно оновлено.", controller.getProduct().getName());
-                    }
+                    productService.saveProduct(controller.getProduct());
+                    log.info("Операцію збереження/оновлення продукту '{}' успішно виконано сервісом.", controller.getProduct().getName());
                     loadProducts();
+                } catch (IllegalArgumentException e) {
+                    log.warn("Помилка бізнес-валідації при збереженні продукту.", e);
+                    showErrorAlert("Помилка валідації даних", e.getMessage());
                 } catch (RuntimeException e) {
-                    log.error("Помилка при збереженні продукту з діалогу.", e);
-                    showErrorAlert("Помилка збереження", e.getMessage());
+                    log.error("Помилка під час збереження продукту через сервісний шар.", e);
+                    showErrorAlert("Помилка збереження", "Не вдалося виконати операцію: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
@@ -204,10 +196,13 @@ public class ProductController {
         if (selected != null) {
             log.info("Користувач ініціював видалення продукту: {} (ID: {})", selected.getName(), selected.getID());
             try {
-                productRepository.delete(selected.getID());
+                productService.deleteProduct(selected.getID());
                 loadProducts();
+            } catch (IllegalArgumentException e) {
+                log.warn("Сервіс відхилив видалення продукту через некоректні параметри.", e);
+                showErrorAlert("Помилка видалення", e.getMessage());
             } catch (RuntimeException e) {
-                log.error("Помилка при видаленні продукту через UI", e);
+                log.error("Помилка при видаленні продукту через сервісний шар", e);
                 showErrorAlert("Помилка видалення", "Не вдалося видалити продукт: " + e.getMessage());
             }
         } else {
@@ -227,7 +222,7 @@ public class ProductController {
     private void showErrorAlert(String title, String content) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
-        alert.setHeaderText("Помилка при роботі з базою даних");
+        alert.setHeaderText("Помилка обробки бізнес-операції");
         alert.setContentText(content);
         alert.showAndWait();
     }

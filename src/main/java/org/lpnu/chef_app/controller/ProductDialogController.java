@@ -109,7 +109,7 @@ public class ProductDialogController {
             };
 
             saveClicked = true;
-            log.info("Форму продукту '{}' успішно провалідовано та збережено локально.", name);
+            log.info("Форму продукту '{}' успішно заповнено. Передаємо об'єкт вищому рівню.", name);
             dialogStage.close();
         }
     }
@@ -144,7 +144,7 @@ public class ProductDialogController {
         if (errorMessage.length() == 0) {
             return true;
         } else {
-            log.warn("Помилка валідації полів продукту: \n{}", errorMessage.toString().trim());
+            log.warn("Помилка первинної валідації FX-полів продукту: \n{}", errorMessage.toString().trim());
             showErrorAlert(errorMessage.toString());
             return false;
         }

@@ -9,7 +9,8 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.stage.FileChooser;
 import org.lpnu.chef_app.model.*;
-import org.lpnu.chef_app.repository.*;
+import org.lpnu.chef_app.service.SaladService;
+import org.lpnu.chef_app.service.ServiceFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,22 +34,25 @@ public class RecipeBookController {
     @FXML private ComboBox<String> sortComboBox;
     @FXML private Button exportButton;
 
-    private SaladRepository saladRepository = new JdbcSaladRepository();
-    public void setSaladRepository(SaladRepository saladRepository) {
-        this.saladRepository = saladRepository;
-    }
-    private ObservableList<Salad> allSalads = FXCollections.observableArrayList();
+    private SaladService saladService = ServiceFactory.getSaladService();
 
+    // For tests
+    public void setSaladService(SaladService saladService) {
+        this.saladService = saladService;
+    }
+
+    private final ObservableList<Salad> allSalads = FXCollections.observableArrayList();
     private FilteredList<Salad> filteredSalads;
     private FilteredList<Ingredient> filteredIngredients;
-    public TextField minKcalField;
-    public TextField maxKcalField;
+
+    @FXML public TextField minKcalField;
+    @FXML public TextField maxKcalField;
 
     private MainController mainController;
 
     @FXML
     public void initialize() {
-        log.info("Ініціалізація Книги рецептів.");
+        log.info("Ініціалізація Книги рецептів через сервісний шар.");
         this.filteredSalads = new FilteredList<>(allSalads, s -> true);
         setupTable();
         loadSalads();
@@ -69,7 +73,6 @@ public class RecipeBookController {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
-                    setStyle("");
                 } else {
                     setText(String.format("%.2f", item));
                 }
@@ -94,8 +97,13 @@ public class RecipeBookController {
     }
 
     void loadSalads() {
-        allSalads.setAll(saladRepository.findAll());
-        log.debug("Завантажено {} салатів у Книгу рецептів.", allSalads.size());
+        try {
+            allSalads.setAll(saladService.getAllSalads());
+            log.debug("Завантажено {} салатів у Книгу рецептів через сервіс.", allSalads.size());
+        } catch (RuntimeException e) {
+            log.error("Помилка завантаження книги рецептів через сервіс", e);
+            showAlert("Помилка", "Не вдалося завантажити книгу рецептів: " + e.getMessage());
+        }
     }
 
     public void refresh() {
@@ -193,6 +201,7 @@ public class RecipeBookController {
         });
     }
 
+    @SuppressWarnings("unchecked")
     private void sortIngredients(String criteria) {
         ObservableList<Ingredient> sourceList = (ObservableList<Ingredient>) filteredIngredients.getSource();
         switch (criteria) {
@@ -219,11 +228,20 @@ public class RecipeBookController {
         alert.setTitle("Видалення рецепту");
         alert.setHeaderText("Ви впевнені, що хочете видалити салат: " + selected.getName() + "?");
 
-        if (alert.showAndWait().get() == ButtonType.OK) {
+        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
             log.info("Користувач підтвердив видалення салату '{}' (ID: {})", selected.getName(), selected.getId());
-            saladRepository.delete(selected.getId());
-            loadSalads();
-            resetDetailsView();
+            try {
+                saladService.deleteSalad(selected.getId());
+
+                loadSalads();
+                resetDetailsView();
+            } catch (IllegalArgumentException e) {
+                log.warn("Сервіс відхилив видалення салату: {}", e.getMessage());
+                showAlert("Помилка валідації", e.getMessage());
+            } catch (RuntimeException e) {
+                log.error("Помилка виконання бізнес-операції видалення салату", e);
+                showAlert("Помилка видалення", "Не вдалося видалити салат через помилку системи: " + e.getMessage());
+            }
         } else {
             log.info("Користувач скасував видалення салату '{}'", selected.getName());
         }
@@ -317,7 +335,6 @@ public class RecipeBookController {
             }
 
             writer.println();
-
             log.info("Рецепт салату '{}' успішно експортовано до файлу: {}", salad.getName(), file.getAbsolutePath());
             showAlert("Успіх", "Рецепт успішно збережено у файл: " + file.getName());
 

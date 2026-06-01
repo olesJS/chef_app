@@ -52,4 +52,6 @@ public abstract class Product {
     }
 
     public abstract ProductType getType();
+    public abstract String getSpecificDetails();
+
 }
