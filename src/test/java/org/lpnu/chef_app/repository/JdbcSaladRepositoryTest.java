@@ -53,8 +53,9 @@ class JdbcSaladRepositoryTest {
                     "FOREIGN KEY(salad_id) REFERENCES salads(id) ON DELETE CASCADE, " +
                     "FOREIGN KEY(product_id) REFERENCES products(id))");
         }
-        saladRepository = new JdbcSaladRepository();
+
         productRepository = new JdbcProductRepository();
+        saladRepository = new JdbcSaladRepository(this.productRepository);
     }
 
     @Test

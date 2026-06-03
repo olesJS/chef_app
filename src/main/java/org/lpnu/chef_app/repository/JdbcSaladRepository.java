@@ -16,7 +16,11 @@ import java.util.Optional;
 public class JdbcSaladRepository implements SaladRepository {
 
     private static final Logger log = LoggerFactory.getLogger(JdbcSaladRepository.class);
-    private final ProductRepository productRepository = new JdbcProductRepository();
+    private final ProductRepository productRepository;
+
+    public JdbcSaladRepository(ProductRepository productRepository) {
+        this.productRepository = productRepository;
+    }
 
     @Override
     public void save(Salad salad) {
